@@ -1,348 +1,7 @@
-// "use client";
-
-// import { useState } from "react";
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "@/components/ui/table";
-// import { Button } from "@/components/ui/button";
-// import { Input } from "@/components/ui/input";
-// import {
-//   Calendar,
-//   Search,
-//   Trash2,
-//   ChevronLeft,
-//   ChevronRight,
-//   Eye,
-// } from "lucide-react";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-// } from "@/components/ui/dialog";
-
-// // Generate fake user data
-// const generateUsers = () => {
-//   const names = [
-//     "Rokey",
-//     "Sakib",
-//     "Halima",
-//     "Sonia",
-//     "Nabil",
-//     "Tuhin",
-//     "Ayman",
-//     "Sarah",
-//     "David",
-//     "John",
-//   ];
-//   const emails = [
-//     "fzaaaa@gmail.com",
-//     "dric@gmail.com",
-//     "ziar@gmail.com",
-//     "xeno@yandex.ru",
-//     "zhks@mail.ru",
-//     "bertou@yandex.ru",
-//     "rrlan@yandex.ru",
-//     "hamil@gmail.com",
-//     "xterris@gmail.com",
-//     "abc@gmail.com",
-//   ];
-
-//   return Array.from({ length: 150 }).map((_, i) => ({
-//     id: i + 1,
-//     userName: names[i % names.length],
-//     email: emails[i % emails.length],
-//     number: `(+33)${Math.floor(Math.random() * 90 + 10)} ${Math.floor(
-//       Math.random() * 90 + 10
-//     )} ${Math.floor(Math.random() * 90 + 10)} ${Math.floor(
-//       Math.random() * 90 + 10
-//     )}`,
-//     date: `${Math.floor(Math.random() * 28 + 1)} Apr 2024`,
-//     address: `South Dakota ${83400 + i}`,
-//     joiningDate: `${Math.floor(Math.random() * 28 + 1)} Jun 2025`,
-//   }));
-// };
-
-// export default function UserList() {
-//   const [users] = useState(generateUsers());
-//   const [filteredData, setFilteredData] = useState(users);
-
-//   const [searchName, setSearchName] = useState("");
-//   const [currentPage, setCurrentPage] = useState(1);
-//   const [selectedUser, setSelectedUser] = useState(null);
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-
-//   const itemsPerPage = 8;
-
-//   // Filter search results
-//   const handleSearch = () => {
-//     const filtered = users.filter((user) => {
-//       return (
-//         user.userName.toLowerCase().includes(searchName.toLowerCase())
-
-//       );
-//     });
-//     setFilteredData(filtered);
-//     setCurrentPage(1);
-//   };
-
-//   // View user details
-//   const handleViewDetails = (user) => {
-//     setSelectedUser(user);
-//     setIsModalOpen(true);
-//   };
-
-//   // Close modal
-//   const handleCloseModal = () => {
-//     setIsModalOpen(false);
-//     setSelectedUser(null);
-//   };
-
-//   // Pagination
-//   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-//   const startIdx = (currentPage - 1) * itemsPerPage;
-//   const currentItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
-
-//   // Generate visible page numbers (show current ±1 pages)
-//   const getVisiblePages = () => {
-//     const pages = [];
-//     const start = Math.max(1, currentPage - 1);
-//     const end = Math.min(totalPages, currentPage + 1);
-//     for (let i = start; i <= end; i++) {
-//       pages.push(i);
-//     }
-//     return pages;
-//   };
-
-//   const visiblePages = getVisiblePages();
-
-//   return (
-//     <div className="mt-5">
-//       <Card className="shadow-xl">
-//         <CardHeader>
-//           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-//             <CardTitle className="text-xl font-semibold text-gray-800">
-//               User List
-//             </CardTitle>
-
-//             {/* Search Fields */}
-//             <div className="flex flex-wrap items-center gap-2">
-              
-//               <Input
-//                 type="text"
-//                 placeholder="User Name"
-//                 value={searchName}
-//                 onChange={(e) => setSearchName(e.target.value)}
-//                 className="w-40 border-gray-300"
-//               />
-//               <Button
-//                 className="bg-[#165039]"
-//                 size="icon"
-//                 onClick={handleSearch}
-//               >
-//                 <Search className="h-4 w-4 " />
-//               </Button>
-//             </div>
-//           </div>
-//         </CardHeader>
-
-//         <CardContent className="p-0">
-//           {/* Table */}
-//           <div className="overflow-x-auto">
-//             <Table>
-//               <TableHeader>
-//                 <TableRow className="bg-[#165039] hover:bg-[#165039]">
-//                   <TableHead className="text-white font-semibold text-center">
-//                     #SI
-//                   </TableHead>
-//                   <TableHead className="text-white font-semibold text-center">
-//                     User Name
-//                   </TableHead>
-//                   <TableHead className="text-white font-semibold text-center">
-//                     Email
-//                   </TableHead>
-//                   <TableHead className="text-white font-semibold text-center">
-//                     Number
-//                   </TableHead>
-//                   <TableHead className="text-white font-semibold text-center">
-//                     Date
-//                   </TableHead>
-//                   <TableHead className="text-white font-semibold text-center">
-//                     Action
-//                   </TableHead>
-//                 </TableRow>
-//               </TableHeader>
-
-//               <TableBody>
-//                 {currentItems.length > 0 ? (
-//                   currentItems.map((user, index) => (
-//                     <TableRow
-//                       key={user.id}
-//                       className={index % 2 === 0 ? "" : "bg-white"}
-//                     >
-//                       <TableCell className="text-center font-medium">
-//                         {startIdx + index + 1}
-//                       </TableCell>
-//                       <TableCell className="text-center">
-//                         {user.userName}
-//                       </TableCell>
-//                       <TableCell className="text-center text-gray-600">
-//                         {user.email}
-//                       </TableCell>
-//                       <TableCell className="text-center text-gray-600">
-//                         {user.number}
-//                       </TableCell>
-//                       <TableCell className="text-center">{user.date}</TableCell>
-//                       <TableCell className="text-center">
-//                         <div className="flex justify-center gap-2">
-//                           <Button
-//                             variant="ghost"
-//                             size="icon"
-//                             className="h-8 w-8 text-[#165039] hover:text-[#165039] hover:bg-blue-50"
-//                             onClick={() => handleViewDetails(user)}
-//                           >
-//                             <Eye className="h-4 w-4" />
-//                           </Button>
-//                           <Button
-//                             variant="ghost"
-//                             size="icon"
-//                             className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-//                           >
-//                             <Trash2 className="h-4 w-4" />
-//                           </Button>
-//                         </div>
-//                       </TableCell>
-//                     </TableRow>
-//                   ))
-//                 ) : (
-//                   <TableRow>
-//                     <TableCell
-//                       colSpan="6"
-//                       className="text-center py-8 text-gray-500"
-//                     >
-//                       No users found
-//                     </TableCell>
-//                   </TableRow>
-//                 )}
-//               </TableBody>
-//             </Table>
-//           </div>
-
-//           {/* User Details Modal */}
-//           <Dialog open={isModalOpen} onOpenChange={handleCloseModal}>
-//             <DialogContent className="sm:max-w-lg bg-[#f5f5f0] border-4">
-//               <DialogHeader className="relative pb-4">
-//                 <DialogTitle className="text-center text-lg font-semibold text-gray-800">
-//                   User Details
-//                 </DialogTitle>
-//               </DialogHeader>
-
-//               {selectedUser && (
-//                 <div className="space-y-0 py-4">
-//                   <div className="flex justify-between items-center py-4 border-b-2">
-//                     <p className="text-sm font-medium text-gray-700">
-//                       User name :
-//                     </p>
-//                     <p className="text-sm font-semibold text-gray-900">
-//                       {selectedUser.userName}
-//                     </p>
-//                   </div>
-
-//                   <div className="flex justify-between items-center py-4 border-b-2">
-//                     <p className="text-sm font-medium text-gray-700">Email :</p>
-//                     <p className="text-sm font-semibold text-gray-900">
-//                       {selectedUser.email}
-//                     </p>
-//                   </div>
-
-//                   <div className="flex justify-between items-center py-4 border-b-2">
-//                     <p className="text-sm font-medium text-gray-700">
-//                       Phone Number
-//                     </p>
-//                     <p className="text-sm font-semibold text-gray-900">
-//                       {selectedUser.number}
-//                     </p>
-//                   </div>
-
-//                   <div className="flex justify-between items-center py-4 border-b-2">
-//                     <p className="text-sm font-medium text-gray-700">Address</p>
-//                     <p className="text-sm font-semibold text-gray-900">
-//                       {selectedUser.address}
-//                     </p>
-//                   </div>
-
-//                   <div className="flex justify-between items-center py-4">
-//                     <p className="text-sm font-medium text-gray-700">
-//                       Joining Date
-//                     </p>
-//                     <p className="text-sm font-semibold text-gray-900">
-//                       {selectedUser.joiningDate}
-//                     </p>
-//                   </div>
-//                 </div>
-//               )}
-//             </DialogContent>
-//           </Dialog>
-
-//           {/* Pagination */}
-//           {totalPages > 1 && (
-//             <div className="mt-4 flex items-center justify-center gap-1">
-//               <Button
-//                 variant="outline"
-//                 size="sm"
-//                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-//                 disabled={currentPage === 1}
-//               >
-//                 <ChevronLeft className="h-4 w-4 mr-1" />
-//                 Back
-//               </Button>
-
-//               {visiblePages.map((page) => (
-//                 <Button
-//                   key={page}
-//                   variant={currentPage === page ? "default" : "outline"}
-//                   size="sm"
-//                   onClick={() => setCurrentPage(page)}
-//                   className={
-//                     currentPage === page
-//                       ? "bg-[#1C5941] hover:bg-[#1C5941]"
-//                       : "hover:bg-gray-100"
-//                   }
-//                 >
-//                   {page}
-//                 </Button>
-//               ))}
-
-//               <Button
-//                 variant="default"
-//                 size="sm"
-//                 onClick={() =>
-//                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-//                 }
-//                 disabled={currentPage === totalPages}
-//                 className="bg-[#1C5941] hover:bg-[#1C5941]"
-//               >
-//                 Next
-//                 <ChevronRight className="h-4 w-4 ml-1" />
-//               </Button>
-//             </div>
-//           )}
-//         </CardContent>
-//       </Card>
-//     </div>
-//   );
-// }
-
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -354,43 +13,44 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  X,
-} from "lucide-react";
+import { Search, Trash2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const generateUsers = () => {
-  const names = ["Rokey", "Sakib", "Halima", "Sonia", "Nabil", "Tuhin", "Ayman", "Sarah", "David", "John"];
-  const emails = ["abc@gmail.com", "fzaaaa@gmail.com", "dric@gmail.com", "ziar@gmail.com"];
-
-  return Array.from({ length: 150 }).map((_, i) => ({
-    id: i + 1,
-    userName: names[i % names.length],
-    email: emails[i % emails.length],
-    number: `+7397386837`,
-    date: `16 Apr 2024`,
-    address: `South Dakota 83475`,
-    bankName: "Asia Bank",
-    acNumber: "29 Jun 2025",
-    acHolderName: names[i % names.length],
-    joiningDate: `29 Jun 2025`,
-  }));
-};
+import {
+  fetchUsers,
+  fetchUserById,
+  deleteUser,
+  selectUsers,
+  selectUsersCurrentPage,
+  selectUsersError,
+  selectUsersStatus,
+  selectSelectedUser,
+  selectSelectedUserError,
+  selectSelectedUserStatus,
+  selectDeleteUserError,
+  selectDeleteUserStatus,
+  selectUsersTotalPages,
+} from "@/store/usersSlice";
 
 export default function UserList() {
-  const [users] = useState(generateUsers());
-  const [filteredData, setFilteredData] = useState(users);
+  const dispatch = useDispatch();
+  const users = useSelector(selectUsers);
+  const status = useSelector(selectUsersStatus);
+  const error = useSelector(selectUsersError);
+  const totalPages = useSelector(selectUsersTotalPages);
+  const apiCurrentPage = useSelector(selectUsersCurrentPage);
+  const selectedUserData = useSelector(selectSelectedUser);
+  const selectedUserStatus = useSelector(selectSelectedUserStatus);
+  const selectedUserError = useSelector(selectSelectedUserError);
+  const deleteStatus = useSelector(selectDeleteUserStatus);
+  const deleteError = useSelector(selectDeleteUserError);
+
   const [searchName, setSearchName] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -398,23 +58,44 @@ export default function UserList() {
   const itemsPerPage = 8;
 
   const handleSearch = () => {
-    const filtered = users.filter((user) =>
-      user.userName.toLowerCase().includes(searchName.toLowerCase())
-    );
-    setFilteredData(filtered);
     setCurrentPage(1);
+    setActiveSearch(searchName.trim());
   };
 
   const handleViewDetails = (user) => {
+    const id = user._id || user.id;
+    if (id) {
+      dispatch(fetchUserById(id));
+    }
     setSelectedUser(user);
     setIsModalOpen(true);
   };
 
+  const handleDeleteUser = async (user) => {
+    const id = user._id || user.id;
+    if (!id) return;
+    const confirmed = window.confirm("Delete this user?");
+    if (!confirmed) return;
+    try {
+      await dispatch(deleteUser(id)).unwrap();
+    } catch {
+      // handled by slice error state
+    }
+  };
 
+  useEffect(() => {
+    dispatch(
+      fetchUsers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: activeSearch,
+      })
+    );
+  }, [activeSearch, currentPage, dispatch]);
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const currentItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
+  // Keep pagination controlled by UI to avoid extra state churn.
+
+  const currentItems = useMemo(() => users, [users]);
 
   const getVisiblePages = () => {
     const pages = [];
@@ -429,7 +110,9 @@ export default function UserList() {
       <Card className="shadow-none border-none bg-[#F9FAFB]">
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-2xl font-semibold text-gray-800">User List</CardTitle>
+            <CardTitle className="text-2xl font-semibold text-gray-800">
+              User List
+            </CardTitle>
             <div className="flex items-center gap-2">
               <Input
                 placeholder="User Name"
@@ -437,7 +120,10 @@ export default function UserList() {
                 onChange={(e) => setSearchName(e.target.value)}
                 className="w-44"
               />
-              <Button className="bg-[#1C5941] rounded-full h-9 w-9 p-0" onClick={handleSearch}>
+              <Button
+                className="bg-[#1C5941] rounded-full h-9 w-9 p-0"
+                onClick={handleSearch}
+              >
                 <Search className="h-4 w-4 text-white" />
               </Button>
             </div>
@@ -448,8 +134,13 @@ export default function UserList() {
           <Table>
             <TableHeader className="bg-[#1C5941]">
               <TableRow className="hover:bg-[#1C5941]">
-                <TableHead className="text-white text-center py-4">#SI</TableHead>
-                <TableHead className="text-white text-center">User Name</TableHead>
+                <TableHead className="text-white text-center py-4">
+                  #SI
+                </TableHead>
+                <TableHead className="text-white text-center">User ID</TableHead>
+                <TableHead className="text-white text-center">
+                  User Name
+                </TableHead>
                 <TableHead className="text-white text-center">Email</TableHead>
                 <TableHead className="text-white text-center">Number</TableHead>
                 <TableHead className="text-white text-center">Date</TableHead>
@@ -457,69 +148,220 @@ export default function UserList() {
               </TableRow>
             </TableHeader>
             <TableBody className="bg-white">
-              {currentItems.map((user, index) => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-center py-4">{startIdx + index + 1}</TableCell>
-                  <TableCell className="text-center">{user.userName}</TableCell>
-                  <TableCell className="text-center text-gray-500">{user.email}</TableCell>
-                  <TableCell className="text-center text-gray-500">{user.number}</TableCell>
-                  <TableCell className="text-center">{user.date}</TableCell>
-                  <TableCell className="text-center flex justify-center gap-2">
-                    <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => handleViewDetails(user)} />
-                    <Trash2 className="h-5 w-5 text-red-400 cursor-pointer" />
+              {status === "loading" && currentItems.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-10 text-gray-500"
+                  >
+                    Loading users...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : currentItems.length > 0 ? (
+                currentItems.map((user, index) => (
+                  <TableRow key={user._id || user.id}>
+                    <TableCell className="text-center py-4">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell className="text-center text-gray-500">
+                      {user._id
+                        ? `${user._id.slice(0, 8)}…`
+                        : user.id
+                        ? String(user.id)
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.fullName || user.userName || "—"}
+                    </TableCell>
+                    <TableCell className="text-center text-gray-500">
+                      {user.email || "—"}
+                    </TableCell>
+                    <TableCell className="text-center text-gray-500">
+                      {user.phoneNumber || user.number || "—"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.createdAt
+                        ? new Date(user.createdAt).toLocaleDateString()
+                        : user.date || "—"}
+                    </TableCell>
+                    <TableCell className="text-center flex justify-center gap-2">
+                      <Eye
+                        className="h-5 w-5 text-gray-400 cursor-pointer"
+                        onClick={() => handleViewDetails(user)}
+                      />
+                      <Trash2
+                        className={`h-5 w-5 text-red-400 cursor-pointer ${
+                          deleteStatus === "loading"
+                            ? "opacity-50 pointer-events-none"
+                            : ""
+                        }`}
+                        onClick={() => handleDeleteUser(user)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-10 text-gray-500"
+                  >
+                    {error ? error : "No users found"}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-
 
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden border-none rounded-2xl">
               <div className="bg-[#F8FAF9] relative p-6">
-                <div 
-                  className="absolute top-0 right-0  p-2 cursor-pointer rounded-bl-xl"
-                  onClick={() => setIsModalOpen(false)}
-                >
-
-                </div>
-                
                 <DialogHeader className="mb-4">
-                  <DialogTitle className="text-center text-gray-700 font-medium">User Details</DialogTitle>
+                  <DialogTitle className="text-center text-gray-700 font-medium">
+                    User Details
+                  </DialogTitle>
                 </DialogHeader>
 
                 {selectedUser && (
                   <div className="space-y-0 border rounded-lg bg-white overflow-hidden text-2xl border-gray-200 py-4">
-                    <DetailRow label="User name :" value={selectedUser.userName} />
-                    <DetailRow label="Email :" value={selectedUser.email} />
-                    <DetailRow label="Phone Number" value={selectedUser.number} />
-                    <DetailRow label="Address" value={selectedUser.address} />
-                    <DetailRow label="Bank Name" value={selectedUser.bankName} showAvatar />
-                    <DetailRow label="A/C number :" value={selectedUser.acNumber} />
-                    <DetailRow label="A/C holder name :" value={selectedUser.acHolderName} />
-                    <DetailRow label="Joining Date" value={selectedUser.joiningDate} last />
+                    {selectedUserStatus === "loading" && (
+                      <DetailRow label="Loading" value="Please wait..." last />
+                    )}
+                    {selectedUserError && (
+                      <DetailRow label="Error" value={selectedUserError} last />
+                    )}
+                    {deleteError && (
+                      <DetailRow label="Delete error" value={deleteError} last />
+                    )}
+                    {selectedUserData && selectedUserStatus === "succeeded" && (
+                      <>
+                        <DetailRow
+                          label="Profile"
+                          value={
+                            selectedUserData.profilePicture ? (
+                              <img
+                                src={selectedUserData.profilePicture}
+                                alt={selectedUserData.fullName || "User"}
+                                className="h-10 w-10 rounded-full object-cover border"
+                              />
+                            ) : (
+                              "—"
+                            )
+                          }
+                          isElement
+                        />
+                        <DetailRow
+                          label="User name :"
+                          value={selectedUserData.fullName || "—"}
+                        />
+                        <DetailRow
+                          label="Email :"
+                          value={selectedUserData.email || "—"}
+                        />
+                        <DetailRow
+                          label="Phone Number"
+                          value={selectedUserData.phoneNumber || "—"}
+                        />
+                        <DetailRow
+                          label="User Type"
+                          value={selectedUserData.userType || "user"}
+                        />
+                        <DetailRow
+                          label="Active"
+                          value={
+                            typeof selectedUserData.isActive === "boolean"
+                              ? selectedUserData.isActive
+                                ? "Yes"
+                                : "No"
+                              : "—"
+                          }
+                        />
+                        <DetailRow
+                          label="Email Verified"
+                          value={
+                            typeof selectedUserData.isEmailVerified ===
+                            "boolean"
+                              ? selectedUserData.isEmailVerified
+                                ? "Yes"
+                                : "No"
+                              : "—"
+                          }
+                        />
+                        <DetailRow
+                          label="Phone Verified"
+                          value={
+                            typeof selectedUserData.isPhoneVerified ===
+                            "boolean"
+                              ? selectedUserData.isPhoneVerified
+                                ? "Yes"
+                                : "No"
+                              : "—"
+                          }
+                        />
+                        <DetailRow
+                          label="Auth Provider"
+                          value={selectedUserData.authProvider || "—"}
+                        />
+                        <DetailRow
+                          label="Created At"
+                          value={
+                            selectedUserData.createdAt
+                              ? new Date(
+                                  selectedUserData.createdAt
+                                ).toLocaleString()
+                              : "—"
+                          }
+                        />
+                        <DetailRow
+                          label="Updated At"
+                          value={
+                            selectedUserData.updatedAt
+                              ? new Date(
+                                  selectedUserData.updatedAt
+                                ).toLocaleString()
+                              : "—"
+                          }
+                          last
+                        />
+                      </>
+                    )}
                   </div>
                 )}
-
-
               </div>
             </DialogContent>
           </Dialog>
 
-          {/* Pagination */}
           <div className="mt-6 flex items-center justify-center gap-1 pb-4">
-             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1}>
-               <ChevronLeft className="h-4 w-4 mr-1" /> Back
-             </Button>
-             {getVisiblePages().map(page => (
-               <Button key={page} size="sm" onClick={() => setCurrentPage(page)} 
-                 className={currentPage === page ? "bg-[#1C5941] text-white" : "bg-white text-gray-700 border"}>
-                 {page}
-               </Button>
-             ))}
-             <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages}>
-               Next <ChevronRight className="h-4 w-4 ml-1" />
-             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+            {getVisiblePages().map((page) => (
+              <Button
+                key={page}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className={
+                  currentPage === page
+                    ? "bg-[#1C5941] text-white"
+                    : "bg-white text-gray-700 border"
+                }
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -527,16 +369,27 @@ export default function UserList() {
   );
 }
 
-// 🔹 Modal Row Component
-function DetailRow({ label, value, last, showAvatar }) {
+function DetailRow({ label, value, last, showAvatar, isElement }) {
   return (
-    <div className={`flex justify-between items-center px-4 py-3 ${!last ? "border-b border-gray-100" : ""}`}>
+    <div
+      className={`flex justify-between items-center px-4 py-3 ${
+        !last ? "border-b border-gray-100" : ""
+      }`}
+    >
       <span className="text-gray-500 text-xs font-medium">{label}</span>
       <div className="flex items-center gap-2">
         {showAvatar && (
-          <img src="https://github.com/shadcn.png" alt="bank" className="h-5 w-5 rounded-full object-cover" />
+          <img
+            src="https://github.com/shadcn.png"
+            alt="bank"
+            className="h-5 w-5 rounded-full object-cover"
+          />
         )}
-        <span className="text-xs font-semibold text-gray-800">{value}</span>
+        {isElement ? (
+          value
+        ) : (
+          <span className="text-xs font-semibold text-gray-800">{value}</span>
+        )}
       </div>
     </div>
   );

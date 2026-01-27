@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -35,29 +36,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const fetchTransactions = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const roles = ["Provider", "Biz Owners", "Event Planers"];
-      resolve(
-        Array.from({ length: 150 }).map((_, i) => ({
-          id: `${12345678 + i}`,
-          userName: ["Rokey", "Sakib", "Halima", "Sonia", "Nabil"][i % 5],
-          providerName: ["John Doe", "David", "Sarah", "XYZ", "Tuhin"][i % 5],
-          amount: `$${(250 + i)}`,
-          date: `16 Apr 2024`,
-          acNumber: `**** **** **** *545`,
-          acHolderName: ["Rokey", "Sakib", "Halima", "Sonia", "Nabil"][i % 5],
-          role: roles[i % 3], 
-        }))
-      );
-    }, 400);
-  });
-};
+import {
+  fetchTransactions,
+  selectTransactions,
+  selectTransactionsCurrentPage,
+  selectTransactionsError,
+  selectTransactionsStatus,
+  selectTransactionsTotalPages,
+} from "@/store/transactionsSlice";
 
 export function TransactionsTable() {
-  const [transactions, setTransactions] = useState([]);
+  const dispatch = useDispatch();
+  const transactions = useSelector(selectTransactions);
+  const status = useSelector(selectTransactionsStatus);
+  const error = useSelector(selectTransactionsError);
+  const totalPages = useSelector(selectTransactionsTotalPages);
+  const apiCurrentPage = useSelector(selectTransactionsCurrentPage);
+
   const [selectedRole, setSelectedRole] = useState("Provider");
   const [searchUser, setSearchUser] = useState("");
   const [searchProvider, setSearchProvider] = useState("");
@@ -69,23 +64,30 @@ export function TransactionsTable() {
 
   const itemsPerPage = 10;
 
+  const typeMap = {
+    Provider: "provider",
+    "Biz Owners": "businessOwner",
+    "Event Planers": "eventManager",
+  };
+
+  const activeSearch = searchUser.trim() || searchProvider.trim();
+  const from = searchDate ? searchDate : null;
+  const to = searchDate ? searchDate : null;
+
   useEffect(() => {
-    fetchTransactions().then((data) => setTransactions(data));
-  }, []);
+    dispatch(
+      fetchTransactions({
+        page: currentPage,
+        limit: itemsPerPage,
+        type: typeMap[selectedRole] || "all",
+        search: activeSearch || undefined,
+        from: from || undefined,
+        to: to || undefined,
+      })
+    );
+  }, [activeSearch, currentPage, dispatch, itemsPerPage, from, selectedRole, to]);
 
-  const filteredData = useMemo(() => {
-    return transactions.filter((t) => {
-      return (
-        t.role === selectedRole &&
-        t.userName.toLowerCase().includes(searchUser.toLowerCase()) &&
-        t.providerName.toLowerCase().includes(searchProvider.toLowerCase()) &&
-        t.date.toLowerCase().includes(searchDate.toLowerCase())
-      );
-    });
-  }, [transactions, selectedRole, searchUser, searchProvider, searchDate]);
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const currentItems = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentItems = useMemo(() => transactions, [transactions]);
 
   const handlePrint = () => window.print();
   const handleDownload = () => {
@@ -116,7 +118,12 @@ export function TransactionsTable() {
 
           <div className="flex flex-wrap items-center gap-2">
              <div className="relative">
-                <Input placeholder="Date" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} className="w-40" />
+                <Input
+                  placeholder="YYYY-MM-DD"
+                  value={searchDate}
+                  onChange={(e) => setSearchDate(e.target.value)}
+                  className="w-40"
+                />
                 <Calendar className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
              </div>
              <Input placeholder="User Name" className="w-40" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} />
@@ -142,19 +149,39 @@ export function TransactionsTable() {
               </TableRow>
             </TableHeader>
             <TableBody className="bg-white">
-              {currentItems.map((t) => (
-                <TableRow key={t.id} className="border-b ">
-                  <TableCell className="text-center text-gray-600 py-4">{t.id}</TableCell>
-                  <TableCell className="text-center text-gray-600">{t.userName}</TableCell>
-                  <TableCell className="text-center text-gray-600">{t.providerName}</TableCell>
-                  <TableCell className="text-center font-medium">{t.amount}</TableCell>
-                  <TableCell className="text-center text-gray-600">{t.date}</TableCell>
-                  <TableCell className="text-center flex justify-center gap-3">
-                    <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => {setSelectedTransaction(t); setIsModalOpen(true);}} />
-                    <Trash2 className="h-5 w-5 text-red-400 cursor-pointer" />
+              {status === "loading" && currentItems.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-gray-500">
+                    Loading transactions...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : currentItems.length > 0 ? (
+                currentItems.map((t) => (
+                  <TableRow key={t.transactionId || t.orderId} className="border-b ">
+                    <TableCell className="text-center text-gray-600 py-4">
+                      {t.transactionId || t.orderId || "—"}
+                    </TableCell>
+                    <TableCell className="text-center text-gray-600">{t.userName || "—"}</TableCell>
+                    <TableCell className="text-center text-gray-600">{t.providerName || "—"}</TableCell>
+                    <TableCell className="text-center font-medium">
+                      {t.amount ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-center text-gray-600">
+                      {t.date ? new Date(t.date).toLocaleDateString() : "—"}
+                    </TableCell>
+                    <TableCell className="text-center flex justify-center gap-3">
+                      <Eye className="h-5 w-5 text-gray-400 cursor-pointer" onClick={() => {setSelectedTransaction(t); setIsModalOpen(true);}} />
+                      <Trash2 className="h-5 w-5 text-red-400 cursor-pointer" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-gray-500">
+                    {error || "No transactions found"}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -220,13 +247,17 @@ export function TransactionsTable() {
 
               {selectedTransaction && (
                 <div className="space-y-0 border rounded-lg bg-white border-gray-200 overflow-hidden">
-                  <DetailRow label="Transaction ID :" value={`#${selectedTransaction.id}`} />
-                  <DetailRow label="Date :" value={selectedTransaction.date} />
-                  <DetailRow label="User name :" value={selectedTransaction.userName} />
-                  <DetailRow label="A/C number :" value={selectedTransaction.acNumber} />
-                  <DetailRow label="A/C holder name :" value={selectedTransaction.acHolderName} />
-                  <DetailRow label="Transaction amount :" value={selectedTransaction.amount} isBold />
-                  <DetailRow label="Provider name :" value={selectedTransaction.providerName} last />
+                  <DetailRow label="Transaction ID :" value={selectedTransaction.transactionId || selectedTransaction.orderId} />
+                  <DetailRow label="Date :" value={selectedTransaction.date ? new Date(selectedTransaction.date).toLocaleString() : "—"} />
+                  <DetailRow label="User name :" value={selectedTransaction.userName || "—"} />
+                  <DetailRow label="Provider name :" value={selectedTransaction.providerName || "—"} />
+                  <DetailRow label="Payment status :" value={selectedTransaction.paymentStatus || "—"} />
+                  <DetailRow label="Amount :" value={selectedTransaction.amount ?? "—"} isBold />
+                  <DetailRow label="Down payment :" value={selectedTransaction.downPayment ?? "—"} />
+                  <DetailRow label="Due amount :" value={selectedTransaction.dueAmount ?? "—"} />
+                  <DetailRow label="Remaining amount :" value={selectedTransaction.remainingAmount ?? "—"} />
+                  <DetailRow label="Paid via :" value={selectedTransaction.paidVia ?? "—"} />
+                  <DetailRow label="Status :" value={selectedTransaction.status || "—"} last />
                 </div>
               )}
 

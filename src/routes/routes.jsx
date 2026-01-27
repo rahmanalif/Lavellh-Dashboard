@@ -34,6 +34,7 @@ import BusinessOwner from "@/pages/dashboardpages/businessOwner/BusinessOwner";
 import EventManager from "@/pages/event-manager/EventManager";
 import Standard from "@/pages/standard/Standard";
 import CreateNotification from "@/pages/createNotification/CreateNotification";
+import ProtectedRoute from "./ProtectedRoute";
 // import FAQ from "../pages/dashboardpages/faq/FAQ";
 // import EditFAQ from "../pages/dashboardpages/faq/EditFAQ";
 // import Listings from "../pages/dashboardpages/listings/Listings";
@@ -65,7 +66,11 @@ const routes = createBrowserRouter([
   },
   {
     path: "/dashboard",
-    element: <DashboardLayout />,
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <DashboardOverview /> },
       { path: "notifications", element: <AllNotifications /> },

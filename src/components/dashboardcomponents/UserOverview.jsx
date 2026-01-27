@@ -1,14 +1,38 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  fetchDashboardStats,
+  selectDashboardStatus,
+  selectDashboardTotals,
+} from "@/store/dashboardStatsSlice";
 
 export default function UserOverview() {
+  const dispatch = useDispatch();
+  const status = useSelector(selectDashboardStatus);
+  const totals = useSelector(selectDashboardTotals);
+  const year = new Date().getFullYear();
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchDashboardStats(year));
+    }
+  }, [dispatch, status, year]);
+
   const stats = [
     {
       title: "Total Earnings",
-      value: "$24.88 K",
+      value:
+        typeof totals?.totalEarnings === "number"
+          ? totals.totalEarnings.toLocaleString()
+          : totals?.totalEarnings || "—",
     },
     {
       title: "Total Users",
-      value: "6500",
+      value:
+        typeof totals?.totalUsers === "number"
+          ? totals.totalUsers.toLocaleString()
+          : totals?.totalUsers || "—",
     },
 
   ];

@@ -1,31 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import logo from "../../assets/logo ayudane.png";
+import { adminLogin } from "../../store/adminAuthSlice";
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const navigate = useNavigate(); // ✅ navigation hook
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { status, error, accessToken } = useSelector((s) => s.adminAuth);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // (Optional) You can add real auth logic here
-    console.log("Sign in:", { username, password, rememberMe });
-
-    // ✅ After successful login → navigate to dashboard
-    navigate("/dashboard");
+    dispatch(adminLogin({ email, password }));
   };
+
+  useEffect(() => {
+    if (status === "succeeded" && accessToken) {
+      navigate("/dashboard");
+    }
+  }, [accessToken, navigate, status]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-lg bg-[#F3F8F4] p-8 shadow-lg">
         <div className="space-y-6">
-          {/* Logo */}
           <div className="flex justify-center">
             <div className="rounded-full p-2">
               <div className="h-24 w-24 overflow-hidden rounded-full">
@@ -38,25 +42,21 @@ export default function SignInPage() {
             </div>
           </div>
 
-          {/* Sign In Heading */}
           <h1 className="text-center text-2xl font-semibold text-gray-900">
             Sign In
           </h1>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username Input */}
             <div className="rounded-md bg-white p-3">
               <input
-                type="text"
-                placeholder="User name"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full border-0 p-0 text-gray-900 placeholder:text-gray-500 focus:outline-none"
               />
             </div>
 
-            {/* Password Input */}
             <div className="rounded-md bg-white p-3">
               <div className="flex items-center gap-2">
                 <input
@@ -80,7 +80,6 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <input
@@ -99,20 +98,21 @@ export default function SignInPage() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/forgotpass")} // ✅ optional route
+                onClick={() => navigate("/forgotpass")}
                 className="text-sm text-gray-700 hover:text-gray-900"
               >
                 Forgot password?
               </button>
             </div>
 
-            {/* Sign In Button */}
             <button
               type="submit"
-              className="w-full rounded-md bg-[#1C5941] py-3 text-base font-medium text-white hover:bg-emerald-900 transition-colors"
+              disabled={status === "loading"}
+              className="w-full rounded-md bg-[#1C5941] py-3 text-base font-medium text-white hover:bg-emerald-900 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Sign in
+              {status === "loading" ? "Logging in..." : "Sign in"}
             </button>
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </form>
         </div>
       </div>

@@ -1,28 +1,61 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  fetchDashboardStats,
+  selectDashboardStatus,
+  selectDashboardTotals,
+} from "@/store/dashboardStatsSlice";
 
 export default function OverviewStats() {
+  const dispatch = useDispatch();
+  const status = useSelector(selectDashboardStatus);
+  const totals = useSelector(selectDashboardTotals);
+  const year = new Date().getFullYear();
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchDashboardStats(year));
+    }
+  }, [dispatch, status, year]);
+
   const stats = [
     {
       title: "Total Earnings",
-      value: "$24.88 K",
+      value:
+        typeof totals?.totalEarnings === "number"
+          ? totals.totalEarnings.toLocaleString()
+          : totals?.totalEarnings || "—",
     },
     {
       title: "Total Users",
-      value: "6500",
+      value:
+        typeof totals?.totalUsers === "number"
+          ? totals.totalUsers.toLocaleString()
+          : totals?.totalUsers || "—",
     },
   ];
   const stats2 = [
         {
       title: "Total Providers",
-      value: "740",
+      value:
+        typeof totals?.totalProviders === "number"
+          ? totals.totalProviders.toLocaleString()
+          : totals?.totalProviders || "—",
     },
     {
       title: "Total Biz Owners",
-      value: "6500",
+      value:
+        typeof totals?.totalBusinessOwners === "number"
+          ? totals.totalBusinessOwners.toLocaleString()
+          : totals?.totalBusinessOwners || "—",
     },
     {
       title: "Total Event Planers",
-      value: "740",
+      value:
+        typeof totals?.totalEventManagers === "number"
+          ? totals.totalEventManagers.toLocaleString()
+          : totals?.totalEventManagers || "—",
     },
   ]
 

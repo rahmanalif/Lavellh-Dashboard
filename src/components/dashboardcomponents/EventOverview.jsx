@@ -1,21 +1,37 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  fetchDashboardStats,
+  selectDashboardStatus,
+  selectDashboardTotals,
+} from "@/store/dashboardStatsSlice";
 
 export default function EventOverview() {
+  const dispatch = useDispatch();
+  const status = useSelector(selectDashboardStatus);
+  const totals = useSelector(selectDashboardTotals);
+  const year = new Date().getFullYear();
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchDashboardStats(year));
+    }
+  }, [dispatch, status, year]);
+
   const stats = [
     {
       title: "Total Event manager",
-      value: "$24.88 K",
+      value:
+        typeof totals?.totalEventManagers === "number"
+          ? totals.totalEventManagers.toLocaleString()
+          : totals?.totalEventManagers || "—",
     },
-    {
-      title: "Total Event manager",
-      value: "6500",
-    },
-    
   ];
 
   return (
     <main className="">
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-1">
         {stats.map((stat, index) => (
           <Card key={index} className="border-border shadow-none ">
             <CardHeader className="">
