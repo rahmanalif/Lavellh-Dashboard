@@ -53,7 +53,7 @@ export function TransactionsTable() {
   const totalPages = useSelector(selectTransactionsTotalPages);
   const apiCurrentPage = useSelector(selectTransactionsCurrentPage);
 
-  const [selectedRole, setSelectedRole] = useState("Provider");
+  const [selectedType, setSelectedType] = useState("provider");
   const [searchUser, setSearchUser] = useState("");
   const [searchProvider, setSearchProvider] = useState("");
   const [searchDate, setSearchDate] = useState("");
@@ -64,10 +64,11 @@ export function TransactionsTable() {
 
   const itemsPerPage = 10;
 
-  const typeMap = {
-    Provider: "provider",
-    "Biz Owners": "businessOwner",
-    "Event Planers": "eventManager",
+  const typeLabels = {
+    provider: "Provider",
+    businessOwner: "Biz Owners",
+    eventManager: "Event Planers",
+    all: "All",
   };
 
   const activeSearch = searchUser.trim() || searchProvider.trim();
@@ -79,13 +80,13 @@ export function TransactionsTable() {
       fetchTransactions({
         page: currentPage,
         limit: itemsPerPage,
-        type: typeMap[selectedRole] || "all",
+        type: selectedType || "all",
         search: activeSearch || undefined,
         from: from || undefined,
         to: to || undefined,
       })
     );
-  }, [activeSearch, currentPage, dispatch, itemsPerPage, from, selectedRole, to]);
+  }, [activeSearch, currentPage, dispatch, itemsPerPage, from, selectedType, to]);
 
   const currentItems = useMemo(() => transactions, [transactions]);
 
@@ -103,13 +104,23 @@ export function TransactionsTable() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 font-medium">
-                  {selectedRole} <ChevronDown className="h-4 w-4" />
+                  {typeLabels[selectedType] || "All"} <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {["Provider", "Biz Owners", "Event Planers"].map(role => (
-                  <DropdownMenuItem key={role} onClick={() => {setSelectedRole(role); setCurrentPage(1);}}>
-                    {role}
+                {[
+                  { label: "Provider", value: "provider" },
+                  { label: "Biz Owners", value: "businessOwner" },
+                  { label: "Event Planers", value: "eventManager" },
+                ].map((role) => (
+                  <DropdownMenuItem
+                    key={role.value}
+                    onClick={() => {
+                      setSelectedType(role.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {role.label}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -142,7 +153,11 @@ export function TransactionsTable() {
               <TableRow className="hover:bg-[#1C5941]">
                 <TableHead className="text-white text-center py-4">#Tr.ID</TableHead>
                 <TableHead className="text-white text-center">User Name</TableHead>
-                <TableHead className="text-white text-center">Provider Name</TableHead>
+                <TableHead className="text-white text-center">
+                  {selectedType === "businessOwner"
+                    ? "Business Owner Name"
+                    : "Provider Name"}
+                </TableHead>
                 <TableHead className="text-white text-center">Amount</TableHead>
                 <TableHead className="text-white text-center">Date</TableHead>
                 <TableHead className="text-white text-center">Action</TableHead>
@@ -162,7 +177,9 @@ export function TransactionsTable() {
                       {t.transactionId || t.orderId || "—"}
                     </TableCell>
                     <TableCell className="text-center text-gray-600">{t.userName || "—"}</TableCell>
-                    <TableCell className="text-center text-gray-600">{t.providerName || "—"}</TableCell>
+                    <TableCell className="text-center text-gray-600">
+                      {t.providerName || t.businessOwnerName || "—"}
+                    </TableCell>
                     <TableCell className="text-center font-medium">
                       {t.amount ?? "—"}
                     </TableCell>
