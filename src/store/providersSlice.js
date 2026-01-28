@@ -15,13 +15,21 @@ const initialState = {
   approveError: null,
   rejectStatus: "idle",
   rejectError: null,
+  toggleStatus: "idle",
+  toggleError: null,
+  deleteStatus: "idle",
+  deleteError: null,
+  lastToggle: null,
 };
 
 export const fetchProviders = createAsyncThunk(
   "providers/fetchAll",
-  async ({ page = 1, limit = 20, search = "" }, { rejectWithValue }) => {
+  async (
+    { page = 1, limit = 20, search = "", status } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      return await providersApi.fetchProviders({ page, limit, search });
+      return await providersApi.fetchProviders({ page, limit, search, status });
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to load providers"
@@ -58,12 +66,39 @@ export const approveProvider = createAsyncThunk(
 
 export const rejectProvider = createAsyncThunk(
   "providers/reject",
-  async (id, { rejectWithValue }) => {
+  async ({ id, reason }, { rejectWithValue }) => {
     try {
-      return await providersApi.rejectProvider(id);
+      return await providersApi.rejectProvider({ id, reason });
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Failed to reject provider"
+      );
+    }
+  }
+);
+
+export const toggleProviderStatus = createAsyncThunk(
+  "providers/toggleStatus",
+  async (id, { rejectWithValue }) => {
+    try {
+      return await providersApi.toggleProviderStatus(id);
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to toggle provider status"
+      );
+    }
+  }
+);
+
+export const deleteProvider = createAsyncThunk(
+  "providers/delete",
+  async (id, { rejectWithValue }) => {
+    try {
+      await providersApi.deleteProvider(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to delete provider"
       );
     }
   }
@@ -159,6 +194,92 @@ const providersSlice = createSlice({
         state.rejectStatus = "failed";
         state.rejectError = action.payload || "Failed to reject provider";
       });
+    builder
+      .addCase(toggleProviderStatus.pending, (state, action) => {
+        state.toggleStatus = "loading";
+        state.toggleError = null;
+        const id = action.meta.arg;
+        const current = state.items.find(
+          (item) => (item._id || item.id) === id
+        );
+        if (current && current.userId && typeof current.userId.isActive === "boolean") {
+          state.lastToggle = { id, previous: current.userId.isActive };
+          state.items = state.items.map((item) => {
+            if ((item._id || item.id) !== id) return item;
+            return {
+              ...item,
+              userId: { ...item.userId, isActive: !item.userId.isActive },
+            };
+          });
+        }
+        if (state.selected && (state.selected._id || state.selected.id) === id) {
+          const userId = state.selected.userId;
+          if (userId && typeof userId.isActive === "boolean") {
+            state.selected = {
+              ...state.selected,
+              userId: { ...userId, isActive: !userId.isActive },
+            };
+          }
+        }
+      })
+      .addCase(toggleProviderStatus.fulfilled, (state, action) => {
+        state.toggleStatus = "succeeded";
+        const updated = action.payload;
+        if (updated?._id || updated?.id) {
+          const id = updated._id || updated.id;
+          state.items = state.items.map((item) => {
+            if ((item._id || item.id) !== id) return item;
+            return { ...item, ...updated };
+          });
+        }
+        if (state.selected && updated) {
+          state.selected = { ...state.selected, ...updated };
+        }
+        state.lastToggle = null;
+      })
+      .addCase(toggleProviderStatus.rejected, (state, action) => {
+        state.toggleStatus = "failed";
+        state.toggleError =
+          action.payload || "Failed to toggle provider status";
+        const last = state.lastToggle;
+        if (last) {
+          state.items = state.items.map((item) => {
+            if ((item._id || item.id) !== last.id) return item;
+            if (!item.userId) return item;
+            return {
+              ...item,
+              userId: { ...item.userId, isActive: last.previous },
+            };
+          });
+          if (state.selected && (state.selected._id || state.selected.id) === last.id) {
+            const userId = state.selected.userId;
+            if (userId) {
+              state.selected = {
+                ...state.selected,
+                userId: { ...userId, isActive: last.previous },
+              };
+            }
+          }
+        }
+        state.lastToggle = null;
+      })
+      .addCase(deleteProvider.pending, (state) => {
+        state.deleteStatus = "loading";
+        state.deleteError = null;
+      })
+      .addCase(deleteProvider.fulfilled, (state, action) => {
+        state.deleteStatus = "succeeded";
+        const id = action.payload;
+        if (id) {
+          state.items = state.items.filter(
+            (item) => (item._id || item.id) !== id
+          );
+        }
+      })
+      .addCase(deleteProvider.rejected, (state, action) => {
+        state.deleteStatus = "failed";
+        state.deleteError = action.payload || "Failed to delete provider";
+      });
   },
 });
 
@@ -181,5 +302,13 @@ export const selectRejectProviderStatus = (state) =>
   state.providers.rejectStatus;
 export const selectRejectProviderError = (state) =>
   state.providers.rejectError;
+export const selectToggleProviderStatus = (state) =>
+  state.providers.toggleStatus;
+export const selectToggleProviderError = (state) =>
+  state.providers.toggleError;
+export const selectDeleteProviderStatus = (state) =>
+  state.providers.deleteStatus;
+export const selectDeleteProviderError = (state) =>
+  state.providers.deleteError;
 
 export default providersSlice.reducer;

@@ -13,6 +13,9 @@ const initialState = {
   selectedError: null,
   toggleStatus: "idle",
   toggleError: null,
+  deleteStatus: "idle",
+  deleteError: null,
+  lastToggle: null,
 };
 
 export const fetchBusinessOwners = createAsyncThunk(
@@ -58,6 +61,20 @@ export const toggleBusinessOwnerStatus = createAsyncThunk(
   }
 );
 
+export const deleteBusinessOwner = createAsyncThunk(
+  "businessOwners/delete",
+  async (id, { rejectWithValue }) => {
+    try {
+      await businessOwnersApi.deleteBusinessOwner(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Failed to delete business owner"
+      );
+    }
+  }
+);
+
 const businessOwnersSlice = createSlice({
   name: "businessOwners",
   initialState,
@@ -92,9 +109,35 @@ const businessOwnersSlice = createSlice({
         state.selectedStatus = "failed";
         state.selectedError = action.payload || "Failed to load business owner";
       })
-      .addCase(toggleBusinessOwnerStatus.pending, (state) => {
+      .addCase(toggleBusinessOwnerStatus.pending, (state, action) => {
         state.toggleStatus = "loading";
         state.toggleError = null;
+        const id = action.meta.arg;
+        const current = state.items.find(
+          (item) => (item._id || item.id) === id
+        );
+        if (current?.userId && typeof current.userId.isActive === "boolean") {
+          state.lastToggle = { id, previous: current.userId.isActive };
+          state.items = state.items.map((item) => {
+            if ((item._id || item.id) !== id) return item;
+            return {
+              ...item,
+              userId: { ...item.userId, isActive: !item.userId.isActive },
+            };
+          });
+        }
+        if (
+          state.selected &&
+          (state.selected._id || state.selected.id) === id
+        ) {
+          const userId = state.selected.userId;
+          if (userId && typeof userId.isActive === "boolean") {
+            state.selected = {
+              ...state.selected,
+              userId: { ...userId, isActive: !userId.isActive },
+            };
+          }
+        }
       })
       .addCase(toggleBusinessOwnerStatus.fulfilled, (state, action) => {
         state.toggleStatus = "succeeded";
@@ -136,11 +179,54 @@ const businessOwnersSlice = createSlice({
         } else {
           state.selected = updated || state.selected;
         }
+        state.lastToggle = null;
       })
       .addCase(toggleBusinessOwnerStatus.rejected, (state, action) => {
         state.toggleStatus = "failed";
         state.toggleError =
           action.payload || "Failed to toggle business owner status";
+        const last = state.lastToggle;
+        if (last) {
+          state.items = state.items.map((item) => {
+            if ((item._id || item.id) !== last.id) return item;
+            if (!item.userId) return item;
+            return {
+              ...item,
+              userId: { ...item.userId, isActive: last.previous },
+            };
+          });
+          if (
+            state.selected &&
+            (state.selected._id || state.selected.id) === last.id
+          ) {
+            const userId = state.selected.userId;
+            if (userId) {
+              state.selected = {
+                ...state.selected,
+                userId: { ...userId, isActive: last.previous },
+              };
+            }
+          }
+        }
+        state.lastToggle = null;
+      })
+      .addCase(deleteBusinessOwner.pending, (state) => {
+        state.deleteStatus = "loading";
+        state.deleteError = null;
+      })
+      .addCase(deleteBusinessOwner.fulfilled, (state, action) => {
+        state.deleteStatus = "succeeded";
+        const id = action.payload;
+        if (id) {
+          state.items = state.items.filter(
+            (item) => (item._id || item.id) !== id
+          );
+        }
+      })
+      .addCase(deleteBusinessOwner.rejected, (state, action) => {
+        state.deleteStatus = "failed";
+        state.deleteError =
+          action.payload || "Failed to delete business owner";
       });
   },
 });
@@ -163,5 +249,9 @@ export const selectToggleBusinessOwnerStatus = (state) =>
   state.businessOwners.toggleStatus;
 export const selectToggleBusinessOwnerError = (state) =>
   state.businessOwners.toggleError;
+export const selectDeleteBusinessOwnerStatus = (state) =>
+  state.businessOwners.deleteStatus;
+export const selectDeleteBusinessOwnerError = (state) =>
+  state.businessOwners.deleteError;
 
 export default businessOwnersSlice.reducer;

@@ -21,10 +21,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   fetchProviders,
   fetchProviderById,
   approveProvider,
   rejectProvider,
+  toggleProviderStatus,
+  deleteProvider,
   selectProviders,
   selectProvidersError,
   selectProvidersStatus,
@@ -35,8 +54,13 @@ import {
   selectApproveProviderError,
   selectRejectProviderStatus,
   selectRejectProviderError,
+  selectToggleProviderStatus,
+  selectToggleProviderError,
+  selectDeleteProviderStatus,
+  selectDeleteProviderError,
   selectProvidersTotalPages,
 } from "@/store/providersSlice";
+import { selectAdminPermissions } from "@/store/adminAuthSlice";
 
 export default function ProviderList() {
   const dispatch = useDispatch();
@@ -51,12 +75,22 @@ export default function ProviderList() {
   const approveError = useSelector(selectApproveProviderError);
   const rejectStatus = useSelector(selectRejectProviderStatus);
   const rejectError = useSelector(selectRejectProviderError);
+  const toggleStatus = useSelector(selectToggleProviderStatus);
+  const toggleError = useSelector(selectToggleProviderError);
+  const deleteStatus = useSelector(selectDeleteProviderStatus);
+  const deleteError = useSelector(selectDeleteProviderError);
+  const permissions = useSelector(selectAdminPermissions);
+  const canManageProviders = permissions?.canManageProviders ?? true;
 
   const [searchName, setSearchName] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
 
   const itemsPerPage = 9;
 
@@ -84,11 +118,46 @@ export default function ProviderList() {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = () => {
+    setRejectReason("");
+    setRejectModalOpen(true);
+  };
+
+  const submitReject = async () => {
+    const id = selectedProviderData?._id || selectedProvider?.id;
+    if (!id || !rejectReason.trim()) return;
+    try {
+      await dispatch(
+        rejectProvider({ id, reason: rejectReason.trim() })
+      ).unwrap();
+      setRejectModalOpen(false);
+    } catch {
+      // handled in slice state
+    }
+  };
+
+  const handleToggleStatus = async () => {
     const id = selectedProviderData?._id || selectedProvider?.id;
     if (!id) return;
     try {
-      await dispatch(rejectProvider(id)).unwrap();
+      await dispatch(toggleProviderStatus(id)).unwrap();
+    } catch {
+      // handled in slice state
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog.id) return;
+    try {
+      await dispatch(deleteProvider(deleteDialog.id)).unwrap();
+      setDeleteDialog({ open: false, id: null });
+      if (
+        selectedProvider &&
+        (selectedProvider._id || selectedProvider.id) === deleteDialog.id
+      ) {
+        setIsModalOpen(false);
+        setSelectedProvider(null);
+      }
     } catch {
       // handled in slice state
     }
@@ -100,9 +169,10 @@ export default function ProviderList() {
         page: currentPage,
         limit: itemsPerPage,
         search: activeSearch,
+        status: statusFilter === "all" ? undefined : statusFilter,
       })
     );
-  }, [activeSearch, currentPage, dispatch]);
+  }, [activeSearch, currentPage, dispatch, statusFilter]);
 
   const currentItems = useMemo(() => providers, [providers]);
 
@@ -125,7 +195,24 @@ export default function ProviderList() {
             <CardTitle className="text-2xl font-semibold text-gray-800">
               Provider List
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[160px] border-gray-300">
+                  <SelectValue placeholder="Filter status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
               <Input
                 placeholder="Provider Name"
                 value={searchName}
@@ -193,11 +280,16 @@ export default function ProviderList() {
                           {user.fullName || "—"}
                         </TableCell>
                         <TableCell className="text-center">
-                          {provider.verificationStatus
-                            ? provider.verificationStatus
-                            : provider.isApproved
-                            ? "approved"
-                            : "pending"}
+                          {(() => {
+                            const statusLabel = provider.verificationStatus
+                              ? provider.verificationStatus
+                              : provider.isApproved
+                              ? "approved"
+                              : "pending";
+                            return statusLabel === "verified"
+                              ? "approved"
+                              : statusLabel;
+                          })()}
                         </TableCell>
                         <TableCell className="text-center text-gray-500">
                           {user.email || "—"}
@@ -214,7 +306,17 @@ export default function ProviderList() {
                               className="h-5 w-5 text-[#1C5941] cursor-pointer"
                               onClick={() => handleViewDetails(provider)}
                             />
-                            <Trash2 className="h-5 w-5 text-red-500 cursor-pointer" />
+                            {canManageProviders && (
+                              <Trash2
+                                className="h-5 w-5 text-red-500 cursor-pointer"
+                                onClick={() =>
+                                  setDeleteDialog({
+                                    open: true,
+                                    id: provider._id || provider.id,
+                                  })
+                                }
+                              />
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -256,6 +358,12 @@ export default function ProviderList() {
                     )}
                     {rejectError && (
                       <DetailRow label="Reject error" value={rejectError} last />
+                    )}
+                    {toggleError && (
+                      <DetailRow label="Status error" value={toggleError} last />
+                    )}
+                    {deleteError && (
+                      <DetailRow label="Delete error" value={deleteError} last />
                     )}
                     {selectedProviderData &&
                       selectedProviderStatus === "succeeded" && (
@@ -414,29 +522,66 @@ export default function ProviderList() {
                             </div>
                           </div>
 
-                          {selectedProviderData.verificationStatus ===
-                            "pending" && (
-                            <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
+                          {canManageProviders &&
+                            selectedProviderData.verificationStatus ===
+                              "pending" && (
+                              <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
+                                <Button
+                                  type="button"
+                                  className="flex-1 bg-[#1C5941] hover:bg-[#1C5941] text-white"
+                                  onClick={handleApprove}
+                                  disabled={approveStatus === "loading"}
+                                >
+                                  {approveStatus === "loading"
+                                    ? "Approving..."
+                                    : "Approve"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  className="flex-1"
+                                  onClick={handleReject}
+                                  disabled={rejectStatus === "loading"}
+                                >
+                                  {rejectStatus === "loading"
+                                    ? "Rejecting..."
+                                    : "Reject"}
+                                </Button>
+                              </div>
+                            )}
+
+                          {canManageProviders && (
+                            <div className="p-4 bg-white border-t border-gray-100 flex flex-col gap-2">
                               <Button
                                 type="button"
-                                className="flex-1 bg-[#1C5941] hover:bg-[#1C5941] text-white"
-                                onClick={handleApprove}
-                                disabled={approveStatus === "loading"}
+                                variant="outline"
+                                className="w-full border-[#1C5941] text-[#1C5941] hover:bg-emerald-50"
+                                onClick={handleToggleStatus}
+                                disabled={toggleStatus === "loading"}
                               >
-                                {approveStatus === "loading"
-                                  ? "Approving..."
-                                  : "Approve"}
+                                {toggleStatus === "loading"
+                                  ? "Updating..."
+                                  : selectedProviderData.userId?.isActive
+                                  ? "Block Provider"
+                                  : "Unblock Provider"}
                               </Button>
                               <Button
                                 type="button"
                                 variant="destructive"
-                                className="flex-1"
-                                onClick={handleReject}
-                                disabled={rejectStatus === "loading"}
+                                className="w-full"
+                                onClick={() =>
+                                  setDeleteDialog({
+                                    open: true,
+                                    id:
+                                      selectedProviderData._id ||
+                                      selectedProviderData.id,
+                                  })
+                                }
+                                disabled={deleteStatus === "loading"}
                               >
-                                {rejectStatus === "loading"
-                                  ? "Rejecting..."
-                                  : "Reject"}
+                                {deleteStatus === "loading"
+                                  ? "Deleting..."
+                                  : "Delete Provider"}
                               </Button>
                             </div>
                           )}
@@ -447,6 +592,60 @@ export default function ProviderList() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
+            <DialogContent className="sm:max-w-[420px]">
+              <DialogHeader>
+                <DialogTitle>Reject Provider</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Please provide a reason for rejection.
+                </p>
+                <Textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Reason for rejection"
+                  rows={4}
+                />
+                {rejectError && (
+                  <p className="text-sm text-red-500">{rejectError}</p>
+                )}
+                <Button
+                  type="button"
+                  className="w-full bg-[#1C5941] text-white"
+                  onClick={submitReject}
+                  disabled={rejectStatus === "loading" || !rejectReason.trim()}
+                >
+                  {rejectStatus === "loading" ? "Submitting..." : "Submit"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <AlertDialog
+            open={deleteDialog.open}
+            onOpenChange={(open) => setDeleteDialog({ open, id: null })}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete provider?</AlertDialogTitle>
+              </AlertDialogHeader>
+              {deleteError && (
+                <p className="text-sm text-red-500">{deleteError}</p>
+              )}
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                  disabled={deleteStatus === "loading"}
+                >
+                  {deleteStatus === "loading" ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <div className="mt-6 flex items-center justify-center gap-1 pb-4">
             <Button

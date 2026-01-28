@@ -15,14 +15,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Calendar,
   Search,
   Trash2,
   ChevronLeft,
   ChevronRight,
   Eye,
   ChevronDown,
-  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -37,9 +35,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   fetchTransactions,
   selectTransactions,
-  selectTransactionsCurrentPage,
   selectTransactionsError,
   selectTransactionsStatus,
   selectTransactionsTotalPages,
@@ -51,12 +55,13 @@ export function TransactionsTable() {
   const status = useSelector(selectTransactionsStatus);
   const error = useSelector(selectTransactionsError);
   const totalPages = useSelector(selectTransactionsTotalPages);
-  const apiCurrentPage = useSelector(selectTransactionsCurrentPage);
 
   const [selectedType, setSelectedType] = useState("provider");
   const [searchUser, setSearchUser] = useState("");
   const [searchProvider, setSearchProvider] = useState("");
-  const [searchDate, setSearchDate] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,8 +77,9 @@ export function TransactionsTable() {
   };
 
   const activeSearch = searchUser.trim() || searchProvider.trim();
-  const from = searchDate ? searchDate : null;
-  const to = searchDate ? searchDate : null;
+  const from = fromDate ? fromDate : null;
+  const to = toDate ? toDate : null;
+  const statusParam = statusFilter === "all" ? undefined : statusFilter;
 
   useEffect(() => {
     dispatch(
@@ -81,12 +87,13 @@ export function TransactionsTable() {
         page: currentPage,
         limit: itemsPerPage,
         type: selectedType || "all",
+        status: statusParam,
         search: activeSearch || undefined,
         from: from || undefined,
         to: to || undefined,
       })
     );
-  }, [activeSearch, currentPage, dispatch, itemsPerPage, from, selectedType, to]);
+  }, [activeSearch, currentPage, dispatch, itemsPerPage, from, selectedType, to, statusParam]);
 
   const currentItems = useMemo(() => transactions, [transactions]);
 
@@ -112,6 +119,7 @@ export function TransactionsTable() {
                   { label: "Provider", value: "provider" },
                   { label: "Biz Owners", value: "businessOwner" },
                   { label: "Event Planers", value: "eventManager" },
+                  { label: "All", value: "all" },
                 ].map((role) => (
                   <DropdownMenuItem
                     key={role.value}
@@ -130,16 +138,41 @@ export function TransactionsTable() {
           <div className="flex flex-wrap items-center gap-2">
              <div className="relative">
                 <Input
-                  placeholder="YYYY-MM-DD"
-                  value={searchDate}
-                  onChange={(e) => setSearchDate(e.target.value)}
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
                   className="w-40"
                 />
-                <Calendar className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
              </div>
+             <div className="relative">
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-40"
+                />
+             </div>
+             <Select
+               value={statusFilter}
+               onValueChange={(value) => {
+                 setStatusFilter(value);
+                 setCurrentPage(1);
+               }}
+             >
+               <SelectTrigger className="w-40">
+                 <SelectValue placeholder="Status" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="all">All Status</SelectItem>
+                 <SelectItem value="pending">Pending</SelectItem>
+                 <SelectItem value="completed">Completed</SelectItem>
+                 <SelectItem value="failed">Failed</SelectItem>
+                 <SelectItem value="cancelled">Cancelled</SelectItem>
+               </SelectContent>
+             </Select>
              <Input placeholder="User Name" className="w-40" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} />
              <Input placeholder="Provider Name" className="w-52" value={searchProvider} onChange={(e) => setSearchProvider(e.target.value)} />
-             <Button size="icon" className="bg-[#1C5941] rounded-full h-9 w-9">
+             <Button size="icon" className="bg-[#1C5941] rounded-full h-9 w-9" onClick={() => setCurrentPage(1)}>
                <Search className="h-4 w-4" />
              </Button>
           </div>

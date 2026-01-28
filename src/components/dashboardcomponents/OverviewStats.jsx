@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   fetchDashboardStats,
+  selectDashboardProviderStats,
   selectDashboardStatus,
   selectDashboardTotals,
 } from "@/store/dashboardStatsSlice";
@@ -11,6 +12,7 @@ export default function OverviewStats() {
   const dispatch = useDispatch();
   const status = useSelector(selectDashboardStatus);
   const totals = useSelector(selectDashboardTotals);
+  const providerStats = useSelector(selectDashboardProviderStats);
   const year = new Date().getFullYear();
 
   useEffect(() => {
@@ -25,43 +27,49 @@ export default function OverviewStats() {
       value:
         typeof totals?.totalEarnings === "number"
           ? totals.totalEarnings.toLocaleString()
-          : totals?.totalEarnings || "—",
+          : totals?.totalEarnings || "N/A",
     },
     {
       title: "Total Users",
       value:
         typeof totals?.totalUsers === "number"
           ? totals.totalUsers.toLocaleString()
-          : totals?.totalUsers || "—",
+          : totals?.totalUsers || "N/A",
     },
-  ];
-  const stats2 = [
-        {
+    {
       title: "Total Providers",
       value:
         typeof totals?.totalProviders === "number"
           ? totals.totalProviders.toLocaleString()
-          : totals?.totalProviders || "—",
+          : totals?.totalProviders || "N/A",
+    },
+  ];
+
+  const businessOwnerCount =
+    totals?.totalBusinessOwners ?? totals?.totalBizOwners;
+  const eventManagerCount =
+    totals?.totalEventManagers ?? totals?.totalEventPlaners;
+
+  const providerStatusStats = [
+    {
+      title: "Total Business Owners",
+      value:
+        typeof businessOwnerCount === "number"
+          ? businessOwnerCount.toLocaleString()
+          : businessOwnerCount ?? "N/A",
     },
     {
-      title: "Total Biz Owners",
+      title: "Total Event Managers",
       value:
-        typeof totals?.totalBusinessOwners === "number"
-          ? totals.totalBusinessOwners.toLocaleString()
-          : totals?.totalBusinessOwners || "—",
+        typeof eventManagerCount === "number"
+          ? eventManagerCount.toLocaleString()
+          : eventManagerCount ?? "N/A",
     },
-    {
-      title: "Total Event Planers",
-      value:
-        typeof totals?.totalEventManagers === "number"
-          ? totals.totalEventManagers.toLocaleString()
-          : totals?.totalEventManagers || "—",
-    },
-  ]
+  ];
 
   return (
     <main className="">
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-3">
         {stats.map((stat, index) => (
           <Card key={index} className="border-border shadow-none ">
             <CardHeader className="">
@@ -78,7 +86,7 @@ export default function OverviewStats() {
         ))}
       </div>
       <div className="grid gap-2 md:grid-cols-3 mt-5">
-        {stats2.map((stat, index) => (
+        {providerStatusStats.map((stat, index) => (
           <Card key={index} className="border-border shadow-none ">
             <CardHeader className="">
               <CardTitle className="text-2xl font-semibold  text-muted-foreground">

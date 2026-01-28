@@ -1,46 +1,36 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Upload } from "lucide-react";
-import flag from "../../../assets/flag.png";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  loadAdminProfile,
+  selectAdmin,
+  selectAdminRole,
+} from "@/store/adminAuthSlice";
 
 const EditProfile = () => {
-  const [formData, setFormData] = useState({
-    name: "admin",
-    email: "admin@gmail.com",
-    phone: "1234567890",
-  });
+  const dispatch = useDispatch();
+  const admin = useSelector(selectAdmin);
+  const role = useSelector(selectAdminRole);
 
-  const [profileImage, setProfileImage] = useState(
-    "https://images.app.goo.gl/mrJyRYZVPjsik1j19"
-  );
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSaveChanges = () => {
-    // Handle save logic here
-    console.log("Saving changes:", formData);
-    alert("Changes saved successfully!");
-  };
-
-  const handleImageUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileImage(e.target?.result);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (!admin) {
+      dispatch(loadAdminProfile());
     }
-  };
+  }, [admin, dispatch]);
+
+  const displayName =
+    admin?.name || admin?.fullName || admin?.email || "Admin";
+  const roleLabel = role
+    ? role
+        .split("-")
+        .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+        .join(" ")
+    : "Admin";
 
   return (
     <div className="min-h-screen font-sans bg-gray-50">
@@ -54,33 +44,29 @@ const EditProfile = () => {
 
       {/* Main Content Area */}
       <div className="container mx-auto px-4 py-8 mt-16">
+        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Self edit is not supported yet. Please contact a super-admin to update
+          your profile details.
+        </div>
         {/* Profile Card and Information Fields */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Profile Card */}
           <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-md flex flex-col items-center">
             <div className="relative mb-4">
               <Avatar className="h-40 w-40">
-                <AvatarImage
-                  src={profileImage || "/placeholder.svg"}
-                  alt="Profile"
-                />
-                <AvatarFallback>IS</AvatarFallback>
+                <AvatarImage src="/placeholder.svg" alt="Profile" />
+                <AvatarFallback>
+                  {displayName
+                    .split(" ")
+                    .slice(0, 2)
+                    .map((word) => word[0])
+                    .join("")
+                    .toUpperCase()}
+                </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
-                <label htmlFor="profile-upload" className="cursor-pointer">
-                  <Upload className="h-8 w-8 text-white" />
-                  <input
-                    id="profile-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
             </div>
             <p className="text-lg font-medium text-gray-800">Profile</p>
-            <p className="text-gray-600">Admin</p>
+            <p className="text-gray-600">{roleLabel}</p>
           </div>
 
           {/* Information Fields */}
@@ -94,10 +80,9 @@ const EditProfile = () => {
               </Label>
               <Input
                 id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                className="bg-white border border-gray-300 text-gray-800 py-2 px-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#1C5941] focus:border-transparent"
-                placeholder="Enter your name"
+                value={displayName}
+                readOnly
+                className="bg-gray-50 border border-gray-300 text-gray-800 py-2 px-3 rounded-md w-full focus:outline-none"
               />
             </div>
 
@@ -111,40 +96,16 @@ const EditProfile = () => {
               <Input
                 id="email"
                 type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className="bg-white border border-gray-300 text-gray-800 py-2 px-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#1C5941] focus:border-transparent"
-                placeholder="Enter your email"
+                value={admin?.email || "â€”"}
+                readOnly
+                className="bg-gray-50 border border-gray-300 text-gray-800 py-2 px-3 rounded-md w-full focus:outline-none"
               />
-            </div>
-
-            <div>
-              <Label
-                htmlFor="phone"
-                className="text-gray-700 font-medium text-base mb-2 block"
-              >
-                Phone No.
-              </Label>
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center border border-gray-300 bg-white rounded-md px-3 py-2 text-gray-800">
-                  <img src={flag} alt="Bangladesh" className="h-4 w-6 mr-2" />
-                  <span>+1242</span>
-                </div>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  type="tel"
-                  className="bg-white border border-gray-300 text-gray-800 py-2 px-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#1C5941] focus:border-transparent"
-                  placeholder="Enter phone number"
-                />
-              </div>
             </div>
 
             {/* Additional Action Buttons */}
             <div className="flex space-x-4 pt-4">
               <div>
-                <Link to={"/dashboard/settings/personal"}>
+                <Link to={"/dashboard/settings/profile"}>
                   <Button
                     variant="outline"
                     className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -153,12 +114,6 @@ const EditProfile = () => {
                   </Button>
                 </Link>
               </div>
-              <Button
-                onClick={handleSaveChanges}
-                className="flex-1 bg-[#1C5941] hover:bg-[#015a63] text-white"
-              >
-                Save Changes
-              </Button>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import * as dashboardStatsApi from "../api/dashboardStatsApi";
 const initialState = {
   totals: null,
   monthly: [],
+  providerStats: null,
   status: "idle",
   error: null,
   year: null,
@@ -37,8 +38,22 @@ const dashboardStatsSlice = createSlice({
         const data = action.payload || {};
         const stats = data.stats || data;
         state.status = "succeeded";
-        state.totals = stats.totals || null;
-        state.monthly = stats.earnings?.monthly || [];
+        const totals = stats.totals || stats || null;
+        const providerStats = stats.providers || {};
+        state.providerStats = stats.providers || null;
+        state.totals = totals
+          ? {
+              ...totals,
+              pendingProviders: providerStats.pending,
+              approvedProviders: providerStats.approved,
+              rejectedProviders: providerStats.rejected,
+            }
+          : null;
+        state.monthly =
+          stats.earnings?.monthly ||
+          stats.monthly ||
+          stats.earnings ||
+          [];
       })
       .addCase(fetchDashboardStats.rejected, (state, action) => {
         state.status = "failed";
@@ -49,6 +64,8 @@ const dashboardStatsSlice = createSlice({
 
 export const selectDashboardTotals = (state) => state.dashboardStats.totals;
 export const selectDashboardMonthly = (state) => state.dashboardStats.monthly;
+export const selectDashboardProviderStats = (state) =>
+  state.dashboardStats.providerStats;
 export const selectDashboardStatus = (state) => state.dashboardStats.status;
 export const selectDashboardError = (state) => state.dashboardStats.error;
 

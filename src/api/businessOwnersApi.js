@@ -24,3 +24,9 @@ export const toggleBusinessOwnerStatus = async (id) => {
   const data = extractData(res);
   return data?.businessOwner || data?.owner || data?.data?.businessOwner || data;
 };
+
+export const deleteBusinessOwner = async (id) => {
+  const res = await adminClient.delete(`/admin/business-owners/${id}`);
+  const data = extractData(res);
+  return data?.businessOwner || data?.owner || data?.data?.businessOwner || data;
+};

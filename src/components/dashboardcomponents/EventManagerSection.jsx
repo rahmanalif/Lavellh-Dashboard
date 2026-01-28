@@ -1,13 +1,33 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Eye, Trash2, Search, ChevronLeft, ChevronRight, X, ArrowLeft, Camera } from 'lucide-react';
+import { Eye, Trash2, Search, ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchEventManagers,
+  fetchEventManagerById,
+  toggleEventManagerStatus,
+  deleteEventManager,
   selectEventManagers,
   selectEventManagersError,
   selectEventManagersStatus,
   selectEventManagersTotalPages,
+  selectSelectedEventManager,
+  selectSelectedEventManagerError,
+  selectSelectedEventManagerStatus,
+  selectToggleEventManagerStatus,
+  selectToggleEventManagerError,
+  selectDeleteEventManagerStatus,
+  selectDeleteEventManagerError,
 } from "@/store/eventManagersSlice";
+import { selectAdminPermissions } from "@/store/adminAuthSlice";
 import {
   fetchEventsByManager,
   selectManagerEvents,
@@ -19,17 +39,28 @@ import {
 const EventManagerSection = () => {
   // --- States for Modal Flow ---
   const [activeModal, setActiveModal] = useState(null); // 'manager', 'eventList', 'eventDetail'
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const dispatch = useDispatch();
   const managers = useSelector(selectEventManagers);
   const status = useSelector(selectEventManagersStatus);
   const error = useSelector(selectEventManagersError);
   const totalPages = useSelector(selectEventManagersTotalPages);
+  const selectedManagerData = useSelector(selectSelectedEventManager);
+  const selectedManagerStatus = useSelector(selectSelectedEventManagerStatus);
+  const selectedManagerError = useSelector(selectSelectedEventManagerError);
+  const toggleStatus = useSelector(selectToggleEventManagerStatus);
+  const toggleError = useSelector(selectToggleEventManagerError);
+  const deleteStatus = useSelector(selectDeleteEventManagerStatus);
+  const deleteError = useSelector(selectDeleteEventManagerError);
+  const permissions = useSelector(selectAdminPermissions);
+  const canManageProviders = permissions?.canManageProviders ?? true;
 
   const [searchName, setSearchName] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
 
   const itemsPerPage = 9;
 
@@ -43,7 +74,33 @@ const EventManagerSection = () => {
   const [eventSearchActive, setEventSearchActive] = useState("");
   const [eventStatusFilter, setEventStatusFilter] = useState("");
 
-  const closeModals = () => { setActiveModal(null); setSelectedItem(null); };
+  const closeModals = () => { setActiveModal(null); setSelectedManager(null); setSelectedEvent(null); };
+
+  const handleToggleStatus = async () => {
+    const id = selectedManagerData?._id || selectedManager?._id || selectedManager?.id;
+    if (!id) return;
+    try {
+      await dispatch(toggleEventManagerStatus(id)).unwrap();
+    } catch {
+      // handled in slice
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog.id) return;
+    try {
+      await dispatch(deleteEventManager(deleteDialog.id)).unwrap();
+      setDeleteDialog({ open: false, id: null });
+      if (
+        selectedManager &&
+        (selectedManager._id || selectedManager.id) === deleteDialog.id
+      ) {
+        closeModals();
+      }
+    } catch {
+      // handled in slice
+    }
+  };
 
   useEffect(() => {
     dispatch(
@@ -64,7 +121,7 @@ const EventManagerSection = () => {
 
   useEffect(() => {
     if (activeModal !== "eventList") return;
-    const managerId = selectedItem?._id || selectedItem?.id;
+    const managerId = selectedManager?._id || selectedManager?.id;
     if (!managerId) return;
     dispatch(
       fetchEventsByManager({
@@ -75,7 +132,7 @@ const EventManagerSection = () => {
         status: eventStatusFilter,
       })
     );
-  }, [activeModal, dispatch, eventPage, eventSearchActive, eventStatusFilter, selectedItem]);
+  }, [activeModal, dispatch, eventPage, eventSearchActive, eventStatusFilter, selectedManager]);
 
   return (
     <div className="p-6 bg-[#f9fbf9] min-h-screen font-sans">
@@ -135,10 +192,30 @@ const EventManagerSection = () => {
                         : "—"}
                     </td>
                     <td className="p-4 flex justify-center gap-4">
-                      <button onClick={() => { setSelectedItem(m); setActiveModal('manager'); }} className="text-gray-400 hover:text-emerald-600 transition-transform active:scale-90">
+                      <button
+                        onClick={() => {
+                          const id = m._id || m.id;
+                          if (id) {
+                            dispatch(fetchEventManagerById(id));
+                          }
+                          setSelectedManager(m);
+                          setSelectedEvent(null);
+                          setActiveModal('manager');
+                        }}
+                        className="text-gray-400 hover:text-emerald-600 transition-transform active:scale-90"
+                      >
                         <Eye size={22} />
                       </button>
-                      <button className="text-gray-400 hover:text-red-500"><Trash2 size={22} /></button>
+                      {canManageProviders && (
+                        <button
+                          className="text-gray-400 hover:text-red-500"
+                          onClick={() =>
+                            setDeleteDialog({ open: true, id: m._id || m.id })
+                          }
+                        >
+                          <Trash2 size={22} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -203,13 +280,29 @@ const EventManagerSection = () => {
             </div>
             <div className="p-4 max-h-[80vh] overflow-y-auto">
               <div className="space-y-0.5 border rounded-lg overflow-hidden mb-5">
-                <DetailRow label="User name" value={selectedItem?.userId?.fullName || selectedItem?.fullName} />
-                <DetailRow label="Email" value={selectedItem?.userId?.email || selectedItem?.email} />
-                <DetailRow label="Phone Number" value={selectedItem?.userId?.phoneNumber || selectedItem?.phoneNumber} />
-                <DetailRow label="Address" value={selectedItem?.userId?.location?.address || "—"} />
-                <DetailRow label="Occupation" value={selectedItem?.occupation || "—"} />
-                <DetailRow label="Reference Id" value={selectedItem?.referenceId || "—"} />
-                <DetailRow label="Joining Date" value={selectedItem?.createdAt ? new Date(selectedItem.createdAt).toLocaleDateString() : "—"} />
+                {selectedManagerStatus === "loading" && (
+                  <DetailRow label="Loading" value="Please wait..." />
+                )}
+                {selectedManagerError && (
+                  <DetailRow label="Error" value={selectedManagerError} />
+                )}
+                {toggleError && (
+                  <DetailRow label="Status error" value={toggleError} />
+                )}
+                {deleteError && (
+                  <DetailRow label="Delete error" value={deleteError} />
+                )}
+                {selectedManagerData && selectedManagerStatus === "succeeded" && (
+                  <>
+                    <DetailRow label="User name" value={selectedManagerData?.userId?.fullName || selectedManagerData?.fullName || "?"} />
+                    <DetailRow label="Email" value={selectedManagerData?.userId?.email || selectedManagerData?.email || "?"} />
+                    <DetailRow label="Phone Number" value={selectedManagerData?.userId?.phoneNumber || selectedManagerData?.phoneNumber || "?"} />
+                    <DetailRow label="Address" value={selectedManagerData?.userId?.location?.address || "?"} />
+                    <DetailRow label="Occupation" value={selectedManagerData?.occupation || "?"} />
+                    <DetailRow label="Reference Id" value={selectedManagerData?.referenceId || "?"} />
+                    <DetailRow label="Joining Date" value={selectedManagerData?.createdAt ? new Date(selectedManagerData.createdAt).toLocaleDateString() : "?"} />
+                  </>
+                )}
               </div>
               
               <button
@@ -220,15 +313,46 @@ const EventManagerSection = () => {
                   setEventStatusFilter("");
                   setActiveModal('eventList');
                 }}
-                className="w-full border-2 border-[#1a4d3c] text-[#1a4d3c] py-2.5 rounded-full hover:bg-emerald-50 font-bold transition-all mb-6"
+                className="w-full border-2 border-[#1a4d3c] text-[#1a4d3c] py-2.5 rounded-full hover:bg-emerald-50 font-bold transition-all mb-4"
               >
                 View All Event
               </button>
+
+              {canManageProviders && (
+                <>
+                  <button
+                    onClick={handleToggleStatus}
+                    disabled={toggleStatus === "loading"}
+                    className="w-full border-2 border-[#1a4d3c] text-[#1a4d3c] py-2.5 rounded-full hover:bg-emerald-50 font-bold transition-all mb-6 disabled:opacity-60"
+                  >
+                    {toggleStatus === "loading"
+                      ? "Updating..."
+                      : selectedManagerData?.userId?.isActive
+                      ? "Block Event Manager"
+                      : "Unblock Event Manager"}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setDeleteDialog({
+                        open: true,
+                        id: selectedManagerData?._id || selectedManagerData?.id,
+                      })
+                    }
+                    disabled={deleteStatus === "loading"}
+                    className="w-full border-2 border-red-500 text-red-600 py-2.5 rounded-full hover:bg-red-50 font-bold transition-all mb-6 disabled:opacity-60"
+                  >
+                    {deleteStatus === "loading"
+                      ? "Deleting..."
+                      : "Delete Event Manager"}
+                  </button>
+                </>
+              )}
               
               <p className="text-gray-700 font-bold mb-3 text-sm">NID</p>
               <div className="grid grid-cols-2 gap-4">
-                <NidBox label="ID Card Front" />
-                <NidBox label="ID Card Back" />
+                <NidBox label="ID Card Front" image={selectedManagerData?.idCard?.frontImage} />
+                <NidBox label="ID Card Back" image={selectedManagerData?.idCard?.backImage} />
               </div>
             </div>
           </div>
@@ -290,7 +414,7 @@ const EventManagerSection = () => {
                 events.map((ev, i) => (
                 <div 
                     key={i} 
-                    onClick={() => { setSelectedItem(ev); setActiveModal('eventDetail'); }}
+                    onClick={() => { setSelectedEvent(ev); setActiveModal('eventDetail'); }}
                     className="bg-white rounded-[2rem] p-5 shadow-sm border border-gray-100 hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <img src={ev.eventImage || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=500"} alt="event" className="w-full h-44 object-cover rounded-[1.5rem] mb-4" />
@@ -377,15 +501,39 @@ const EventManagerSection = () => {
               <button onClick={() => setActiveModal('eventList')} className="bg-[#c0392b] text-white p-1 rounded hover:bg-red-700 transition-colors"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-1">
-              <DetailRow label="Event Name" value={selectedItem?.eventName || selectedItem?.title} />
-              <DetailRow label="Date" value={selectedItem?.eventStartDateTime ? new Date(selectedItem.eventStartDateTime).toLocaleDateString() : "—"} />
-              <DetailRow label="Time" value={selectedItem?.eventStartDateTime ? new Date(selectedItem.eventStartDateTime).toLocaleTimeString() : "—"} />
-              <DetailRow label="Price" value={selectedItem?.ticketPrice ?? "—"} />
-              <DetailRow label="Location" value={selectedItem?.eventLocation || "—"} />
+              <DetailRow label="Event Name" value={selectedEvent?.eventName || selectedEvent?.title} />
+              <DetailRow label="Date" value={selectedEvent?.eventStartDateTime ? new Date(selectedEvent.eventStartDateTime).toLocaleDateString() : "—"} />
+              <DetailRow label="Time" value={selectedEvent?.eventStartDateTime ? new Date(selectedEvent.eventStartDateTime).toLocaleTimeString() : "—"} />
+              <DetailRow label="Price" value={selectedEvent?.ticketPrice ?? "—"} />
+              <DetailRow label="Location" value={selectedEvent?.eventLocation || "—"} />
             </div>
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, id: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete event manager?</AlertDialogTitle>
+          </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-red-500">{deleteError}</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteStatus === "loading"}
+            >
+              {deleteStatus === "loading" ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -398,10 +546,18 @@ const DetailRow = ({ label, value }) => (
   </div>
 );
 
-const NidBox = ({ label }) => (
+const NidBox = ({ label, image }) => (
   <div className="text-center">
     <div className="h-28 bg-gray-200 rounded-xl mb-2 overflow-hidden border border-gray-100 shadow-inner">
-        <img src="https://via.placeholder.com/200x120?text=ID+CARD" className="w-full h-full object-cover" alt="nid" />
+      {image ? (
+        <img src={image} className="w-full h-full object-cover" alt="nid" />
+      ) : (
+        <img
+          src="https://via.placeholder.com/200x120?text=ID+CARD"
+          className="w-full h-full object-cover"
+          alt="nid"
+        />
+      )}
     </div>
     <span className="text-[10px] text-gray-400 font-bold uppercase">{label}</span>
   </div>

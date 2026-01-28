@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -22,16 +23,55 @@ import {
   Link,
   ImageIcon,
 } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAdminSetting,
+  selectAdminSetting,
+  selectAdminSettingError,
+  selectAdminSettingStatus,
+  selectUpsertSettingError,
+  selectUpsertSettingStatus,
+  upsertAdminSetting,
+} from "@/store/settingsSlice";
 
 const EditPrivacyPolicy = () => {
-  const [content, setContent] = useState(
-    `Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci...`
-  );
+  const dispatch = useDispatch();
+  const setting = useSelector(selectAdminSetting("privacy_policy"));
+  const status = useSelector(selectAdminSettingStatus("privacy_policy"));
+  const error = useSelector(selectAdminSettingError("privacy_policy"));
+  const saveStatus = useSelector(selectUpsertSettingStatus("privacy_policy"));
+  const saveError = useSelector(selectUpsertSettingError("privacy_policy"));
+
+  const [content, setContent] = useState("");
   const [fontSize, setFontSize] = useState("16");
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchAdminSetting("privacy_policy"));
+    }
+  }, [dispatch, status]);
+
+  useEffect(() => {
+    if (!initialized && setting?.content !== undefined) {
+      setContent(setting?.content || "");
+      setInitialized(true);
+    }
+  }, [initialized, setting]);
 
   const handleSaveChanges = () => {
-    console.log("Saving Privacy Policy content:", content);
-    alert("Privacy Policy content saved successfully!");
+    dispatch(
+      upsertAdminSetting({
+        key: "privacy_policy",
+        title: "Privacy Policy",
+        content,
+      })
+    )
+      .unwrap()
+      .then(() => {
+        alert("Privacy Policy content saved successfully!");
+      })
+      .catch(() => {});
   };
 
   const insertText = (before, after = "") => {
@@ -100,7 +140,9 @@ const EditPrivacyPolicy = () => {
     <div className="bg-gray-100">
       {/* Header */}
       <div className="bg-[#1C5941] text-white p-4 flex items-center gap-3 rounded-lg">
-        <ChevronLeft className="h-6 w-6" />
+        <RouterLink to="/dashboard/settings/privacy">
+          <ChevronLeft className="h-6 w-6" />
+        </RouterLink>
         <h1 className="text-lg font-medium">Edit Privacy Policy</h1>
       </div>
 
@@ -188,6 +230,16 @@ const EditPrivacyPolicy = () => {
 
             {/* Textarea */}
             <div className="relative">
+              {status === "loading" && (
+                <div className="px-4 py-3 text-sm text-gray-500">
+                  Loading content...
+                </div>
+              )}
+              {status === "failed" && (
+                <div className="px-4 py-3 text-sm text-red-500">
+                  {error || "Failed to load content."}
+                </div>
+              )}
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -202,9 +254,13 @@ const EditPrivacyPolicy = () => {
               <Button
                 onClick={handleSaveChanges}
                 className="bg-[#1C5941] hover:bg-[#1C5941] text-white px-8 py-2 rounded-md"
+                disabled={saveStatus === "loading"}
               >
-                Save Changes
+                {saveStatus === "loading" ? "Saving..." : "Save Changes"}
               </Button>
+              {saveError && (
+                <p className="mt-2 text-sm text-red-500">{saveError}</p>
+              )}
             </div>
           </div>
         </div>

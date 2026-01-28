@@ -1,14 +1,29 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  fetchPublicSetting,
+  selectPublicSetting,
+  selectPublicSettingError,
+  selectPublicSettingStatus,
+} from "@/store/settingsSlice";
+import { selectAdminPermissions } from "@/store/adminAuthSlice";
 
 const AboutUs = () => {
-  // Dummy paragraphs (these can later be fetched from an API or CMS)
-  const aboutParagraphs = [
-    "Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magna convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Suspendisse est adipiscing proin et. Leo nisl bibendum donec ac non eget euismod suscipit. At ultrices nullam ipsum tellus. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.",
-    "Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magna convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Suspendisse est adipiscing proin et. Leo nisl bibendum donec ac non eget euismod suscipit. At ultrices nullam ipsum tellus. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.",
-    "Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magna convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Suspendisse est adipiscing proin et. Leo nisl bibendum donec ac non eget euismod suscipit. At ultrices nullam ipsum tellus. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.",
-  ];
+  const dispatch = useDispatch();
+  const setting = useSelector(selectPublicSetting("about_us"));
+  const status = useSelector(selectPublicSettingStatus("about_us"));
+  const error = useSelector(selectPublicSettingError("about_us"));
+  const permissions = useSelector(selectAdminPermissions);
+  const canManageSettings = permissions?.canManageSettings ?? true;
+
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchPublicSetting("about_us"));
+    }
+  }, [dispatch, status]);
 
   return (
     <div className="font-sans pr-5">
@@ -18,22 +33,33 @@ const AboutUs = () => {
       </h2>
 
       {/* Edit Button */}
-      <div className="flex justify-end p-4 ">
-        <Link to="/dashboard/settings/editabout">
-          <Button className="bg-[#1C5941] hover:bg-[#1C5941] text-white rounded-full flex items-center space-x-1 shadow-md">
-            <Edit className="h-4 w-4" />
-            <span>Edit</span>
-          </Button>
-        </Link>
-      </div>
+      {canManageSettings && (
+        <div className="flex justify-end p-4 ">
+          <Link to="/dashboard/settings/editabout">
+            <Button className="bg-[#1C5941] hover:bg-[#1C5941] text-white rounded-full flex items-center space-x-1 shadow-md">
+              <Edit className="h-4 w-4" />
+              <span>Edit</span>
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* About Content */}
-      <div className="space-y-6 px-3">
-        {aboutParagraphs.map((paragraph, index) => (
-          <p key={index} className="text-gray-700 leading-relaxed text-justify">
-            {paragraph}
-          </p>
-        ))}
+      <div className="px-3">
+        {status === "loading" && (
+          <p className="text-gray-500">Loading about us...</p>
+        )}
+        {status === "failed" && (
+          <p className="text-red-500">{error || "Failed to load content."}</p>
+        )}
+        {status === "succeeded" && (
+          <div
+            className="text-gray-700 leading-relaxed text-justify [&_p]:mb-6"
+            dangerouslySetInnerHTML={{
+              __html: setting?.content || "<p>No content available.</p>",
+            }}
+          />
+        )}
       </div>
     </div>
   );

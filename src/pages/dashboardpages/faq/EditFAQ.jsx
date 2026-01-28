@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Link as RouterLink } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -20,10 +21,9 @@ import {
   AlignRight,
   List,
   ListOrdered,
-  Link,
+  Link as LinkIcon,
   ImageIcon,
 } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAdminSetting,
   selectAdminSetting,
@@ -34,13 +34,13 @@ import {
   upsertAdminSetting,
 } from "@/store/settingsSlice";
 
-const EditTermsAndConditions = () => {
+const EditFAQ = () => {
   const dispatch = useDispatch();
-  const setting = useSelector(selectAdminSetting("terms_and_conditions"));
-  const status = useSelector(selectAdminSettingStatus("terms_and_conditions"));
-  const error = useSelector(selectAdminSettingError("terms_and_conditions"));
-  const saveStatus = useSelector(selectUpsertSettingStatus("terms_and_conditions"));
-  const saveError = useSelector(selectUpsertSettingError("terms_and_conditions"));
+  const setting = useSelector(selectAdminSetting("faq"));
+  const status = useSelector(selectAdminSettingStatus("faq"));
+  const error = useSelector(selectAdminSettingError("faq"));
+  const saveStatus = useSelector(selectUpsertSettingStatus("faq"));
+  const saveError = useSelector(selectUpsertSettingError("faq"));
 
   const [content, setContent] = useState("");
   const [fontSize, setFontSize] = useState("16");
@@ -48,7 +48,7 @@ const EditTermsAndConditions = () => {
 
   useEffect(() => {
     if (status === "idle") {
-      dispatch(fetchAdminSetting("terms_and_conditions"));
+      dispatch(fetchAdminSetting("faq"));
     }
   }, [dispatch, status]);
 
@@ -62,14 +62,14 @@ const EditTermsAndConditions = () => {
   const handleSaveChanges = () => {
     dispatch(
       upsertAdminSetting({
-        key: "terms_and_conditions",
-        title: "Terms & Conditions",
+        key: "faq",
+        title: "FAQ",
         content,
       })
     )
       .unwrap()
       .then(() => {
-        alert("Terms and Conditions saved successfully!");
+        alert("FAQ saved successfully!");
       })
       .catch(() => {});
   };
@@ -108,7 +108,7 @@ const EditTermsAndConditions = () => {
     {
       icon: List,
       label: "Bullet List",
-      action: () => insertText("\n• List item"),
+      action: () => insertText("\n- List item"),
     },
     {
       icon: ListOrdered,
@@ -119,7 +119,7 @@ const EditTermsAndConditions = () => {
 
   const insertButtons = [
     {
-      icon: Link,
+      icon: LinkIcon,
       label: "Insert Link",
       action: () => {
         const url = prompt("Enter URL:");
@@ -139,11 +139,11 @@ const EditTermsAndConditions = () => {
   return (
     <div className="bg-gray-100">
       {/* Header */}
-      <div className="bg-[#1C5941] text-white p-4 flex items-center gap-3 rounded-lg ">
-        <RouterLink to="/dashboard/settings/terms">
+      <div className="bg-[#1C5941] text-white p-4 flex items-center gap-3 rounded-lg">
+        <Link to="/dashboard/settings/faq">
           <ChevronLeft className="h-6 w-6" />
-        </RouterLink>
-        <h1 className="text-lg font-medium">Edit Terms and Conditions</h1>
+        </Link>
+        <h1 className="text-lg font-medium">Edit FAQ</h1>
       </div>
 
       {/* Main Content */}
@@ -253,7 +253,7 @@ const EditTermsAndConditions = () => {
             <div className="p-4 border-t border-gray-200">
               <Button
                 onClick={handleSaveChanges}
-                className="bg-[#1C5941] hover:bg-[#015a63] text-white px-8 py-2 rounded-md"
+                className="bg-[#1C5941] hover:bg-[#1C5941] text-white px-8 py-2 rounded-md"
                 disabled={saveStatus === "loading"}
               >
                 {saveStatus === "loading" ? "Saving..." : "Save Changes"}
@@ -269,4 +269,4 @@ const EditTermsAndConditions = () => {
   );
 };
 
-export default EditTermsAndConditions;
+export default EditFAQ;

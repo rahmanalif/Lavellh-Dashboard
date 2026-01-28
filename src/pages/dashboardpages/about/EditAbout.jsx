@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -22,18 +23,56 @@ import {
   Link,
   ImageIcon,
 } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAdminSetting,
+  selectAdminSetting,
+  selectAdminSettingError,
+  selectAdminSettingStatus,
+  selectUpsertSettingError,
+  selectUpsertSettingStatus,
+  upsertAdminSetting,
+} from "@/store/settingsSlice";
 
 const EditAbout = () => {
-  const [content, setContent] =
-    useState(`Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magna convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Suspendisse est adipiscing proin et. Leo nisl bibendum donec ac non eget euismod suscipit. At ultrices nullam ipsum tellus. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.
+  const dispatch = useDispatch();
+  const setting = useSelector(selectAdminSetting("about_us"));
+  const status = useSelector(selectAdminSettingStatus("about_us"));
+  const error = useSelector(selectAdminSettingError("about_us"));
+  const saveStatus = useSelector(selectUpsertSettingStatus("about_us"));
+  const saveError = useSelector(selectUpsertSettingError("about_us"));
 
-Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magna convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Suspendisse est adipiscing proin et. Leo nisl bibendum donec ac non eget euismod suscipit. At ultrices nullam ipsum tellus. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.`);
+  const [content, setContent] = useState("");
+  const [initialized, setInitialized] = useState(false);
 
   const [fontSize, setFontSize] = useState("16");
 
+  useEffect(() => {
+    if (status === "idle") {
+      dispatch(fetchAdminSetting("about_us"));
+    }
+  }, [dispatch, status]);
+
+  useEffect(() => {
+    if (!initialized && setting?.content !== undefined) {
+      setContent(setting?.content || "");
+      setInitialized(true);
+    }
+  }, [initialized, setting]);
+
   const handleSaveChanges = () => {
-    console.log("Saving content:", content);
-    alert("Content saved successfully!");
+    dispatch(
+      upsertAdminSetting({
+        key: "about_us",
+        title: "About Us",
+        content,
+      })
+    )
+      .unwrap()
+      .then(() => {
+        alert("Content saved successfully!");
+      })
+      .catch(() => {});
   };
 
   const insertText = (before, after = "") => {
@@ -102,7 +141,9 @@ Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas dui
     <div className=" bg-gray-100">
       {/* Header */}
       <div className="bg-[#1C5941] text-white p-4 flex items-center gap-3 rounded-lg">
-        <ChevronLeft className="h-6 w-6" />
+        <RouterLink to="/dashboard/settings/about">
+          <ChevronLeft className="h-6 w-6" />
+        </RouterLink>
         <h1 className="text-lg font-medium">Edit about us</h1>
       </div>
 
@@ -211,6 +252,16 @@ Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas dui
 
             {/* Editor */}
             <div className="relative">
+              {status === "loading" && (
+                <div className="px-4 py-3 text-sm text-gray-500">
+                  Loading content...
+                </div>
+              )}
+              {status === "failed" && (
+                <div className="px-4 py-3 text-sm text-red-500">
+                  {error || "Failed to load content."}
+                </div>
+              )}
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -225,9 +276,13 @@ Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas dui
               <Button
                 onClick={handleSaveChanges}
                 className="bg-[#1C5941] hover:bg-[#1C5941] text-white px-8 py-2 rounded-md"
+                disabled={saveStatus === "loading"}
               >
-                Save Changes
+                {saveStatus === "loading" ? "Saving..." : "Save Changes"}
               </Button>
+              {saveError && (
+                <p className="mt-2 text-sm text-red-500">{saveError}</p>
+              )}
             </div>
           </div>
         </div>

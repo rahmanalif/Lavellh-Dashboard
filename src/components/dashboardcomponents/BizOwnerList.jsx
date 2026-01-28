@@ -12,9 +12,19 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   fetchBusinessOwners,
   fetchBusinessOwnerById,
   toggleBusinessOwnerStatus,
+  deleteBusinessOwner,
   selectBusinessOwners,
   selectBusinessOwnersError,
   selectBusinessOwnersStatus,
@@ -24,7 +34,10 @@ import {
   selectSelectedBusinessOwnerStatus,
   selectToggleBusinessOwnerError,
   selectToggleBusinessOwnerStatus,
+  selectDeleteBusinessOwnerError,
+  selectDeleteBusinessOwnerStatus,
 } from "@/store/businessOwnersSlice";
+import { selectAdminPermissions } from "@/store/adminAuthSlice";
 import {
   fetchEmployeesByOwner,
   fetchEmployeeById,
@@ -48,6 +61,10 @@ const BizOwnerList = () => {
   const selectedOwnerError = useSelector(selectSelectedBusinessOwnerError);
   const toggleStatus = useSelector(selectToggleBusinessOwnerStatus);
   const toggleError = useSelector(selectToggleBusinessOwnerError);
+  const deleteStatus = useSelector(selectDeleteBusinessOwnerStatus);
+  const deleteError = useSelector(selectDeleteBusinessOwnerError);
+  const permissions = useSelector(selectAdminPermissions);
+  const canManageProviders = permissions?.canManageProviders ?? true;
   const employees = useSelector(selectEmployees);
   const employeesStatus = useSelector(selectEmployeesStatus);
   const employeesError = useSelector(selectEmployeesError);
@@ -61,6 +78,7 @@ const BizOwnerList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [employeeSearchActive, setEmployeeSearchActive] = useState("");
@@ -102,6 +120,22 @@ const BizOwnerList = () => {
     if (!id) return;
     try {
       await dispatch(toggleBusinessOwnerStatus(id)).unwrap();
+    } catch {
+      // handled by slice error
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialog.id) return;
+    try {
+      await dispatch(deleteBusinessOwner(deleteDialog.id)).unwrap();
+      setDeleteDialog({ open: false, id: null });
+      if (
+        selectedItem &&
+        (selectedItem._id || selectedItem.id) === deleteDialog.id
+      ) {
+        closeAllModals();
+      }
     } catch {
       // handled by slice error
     }
@@ -225,9 +259,19 @@ const BizOwnerList = () => {
                       >
                         <Eye size={22} />
                       </button>
-                      <button className="text-gray-400 hover:text-red-500 transition-colors">
-                        <Trash2 size={22} />
-                      </button>
+                      {canManageProviders && (
+                        <button
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          onClick={() =>
+                            setDeleteDialog({
+                              open: true,
+                              id: owner._id || owner.id,
+                            })
+                          }
+                        >
+                          <Trash2 size={22} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -310,6 +354,9 @@ const BizOwnerList = () => {
                 )}
                 {toggleError && (
                   <DetailRow label="Status error" value={toggleError} />
+                )}
+                {deleteError && (
+                  <DetailRow label="Delete error" value={deleteError} />
                 )}
                 {selectedOwnerData && selectedOwnerStatus === "succeeded" && (
                   <>
@@ -476,19 +523,39 @@ const BizOwnerList = () => {
                         View All Employee
                       </button>
                     </div>
-                    <div className="p-4 bg-white border-t border-gray-100">
-                      <button
-                        onClick={handleToggleStatus}
-                        disabled={toggleStatus === "loading"}
-                        className="w-full border-2 border-[#1a4d3c] text-[#1a4d3c] py-2.5 rounded-full hover:bg-emerald-50 font-bold transition-all text-sm disabled:opacity-60"
-                      >
-                        {toggleStatus === "loading"
-                          ? "Updating..."
-                          : selectedOwnerData.userId?.isActive
-                          ? "Block Business Owner"
-                          : "Unblock Business Owner"}
-                      </button>
-                    </div>
+                    {canManageProviders && (
+                      <>
+                        <div className="p-4 bg-white border-t border-gray-100">
+                          <button
+                            onClick={handleToggleStatus}
+                            disabled={toggleStatus === "loading"}
+                            className="w-full border-2 border-[#1a4d3c] text-[#1a4d3c] py-2.5 rounded-full hover:bg-emerald-50 font-bold transition-all text-sm disabled:opacity-60"
+                          >
+                            {toggleStatus === "loading"
+                              ? "Updating..."
+                              : selectedOwnerData.userId?.isActive
+                              ? "Block Business Owner"
+                              : "Unblock Business Owner"}
+                          </button>
+                        </div>
+                        <div className="p-4 bg-white border-t border-gray-100">
+                          <button
+                            onClick={() =>
+                              setDeleteDialog({
+                                open: true,
+                                id: selectedOwnerData._id || selectedOwnerData.id,
+                              })
+                            }
+                            disabled={deleteStatus === "loading"}
+                            className="w-full border-2 border-red-500 text-red-600 py-2.5 rounded-full hover:bg-red-50 font-bold transition-all text-sm disabled:opacity-60"
+                          >
+                            {deleteStatus === "loading"
+                              ? "Deleting..."
+                              : "Delete Business Owner"}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -701,6 +768,30 @@ const BizOwnerList = () => {
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, id: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete business owner?</AlertDialogTitle>
+          </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-red-500">{deleteError}</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteStatus === "loading"}
+            >
+              {deleteStatus === "loading" ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

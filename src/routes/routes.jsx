@@ -25,15 +25,17 @@ import Earnings from "../pages/dashboardpages/earnings/Earnings";
 import Providers from "../pages/dashboardpages/providers/Providers";
 import AllNotifications from "../pages/dashboardpages/notification/AllNotifications";
 import Categories from "../pages/dashboardpages/categories/Categories";
+import Transactions from "@/pages/dashboardpages/transactions/Transactions";
 import WithdrawRequest from "@/pages/dashboardpages/withdrawrequest/WithdrawRequest";
 import ChangedPassword from "@/pages/dashboardpages/personalinformation/ChangedPassword";
 import { FAQSection } from "@/pages/dashboardpages/faq/FAQSection";
+import EditFAQ from "@/pages/dashboardpages/faq/EditFAQ";
 import { InboxSection } from "@/pages/dashboardpages/support/InboxSection";
 import EditProfile from "@/pages/dashboardpages/personalinformation/EditProfile";
 import BusinessOwner from "@/pages/dashboardpages/businessOwner/BusinessOwner";
 import EventManager from "@/pages/event-manager/EventManager";
-import Standard from "@/pages/standard/Standard";
 import CreateNotification from "@/pages/createNotification/CreateNotification";
+import Admins from "@/pages/dashboardpages/admins/Admins";
 import ProtectedRoute from "./ProtectedRoute";
 // import FAQ from "../pages/dashboardpages/faq/FAQ";
 // import EditFAQ from "../pages/dashboardpages/faq/EditFAQ";
@@ -76,13 +78,14 @@ const routes = createBrowserRouter([
       { path: "notifications", element: <AllNotifications /> },
       { path: "users", element: <AllUsers /> },
       { path: "earnings", element: <Earnings /> },
+      { path: "transactions", element: <Transactions /> },
       { path: "providers", element: <Providers /> },
       { path: "business-owner", element: <BusinessOwner /> },
       { path: "event-manager", element: <EventManager /> },
       { path: "categories", element: <Categories /> },
       { path: "withdraw-request", element: <WithdrawRequest /> },
-      { path: "subscription", element: <Standard /> },
       { path: "support", element: <InboxSection /> },
+      { path: "admins", element: <Admins /> },
 
       // Settings
       { path: "settings/profile", element: <Profile /> },
@@ -99,7 +102,7 @@ const routes = createBrowserRouter([
       { path: "settings/about", element: <AboutUs /> },
       { path: "settings/editabout", element: <EditAbout /> },
       { path: "settings/faq", element: <FAQSection /> },
-      // { path: "settings/editfaq", element: <EditFAQ /> },
+      { path: "settings/editfaq", element: <EditFAQ /> },
     ],
   },
 ]);

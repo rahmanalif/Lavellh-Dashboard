@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
@@ -14,22 +16,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  fetchDashboardStats,
+  selectDashboardMonthly,
+} from "@/store/dashboardStatsSlice";
 
 export function EarningsChart() {
-  const earningsData = [
-    { month: "Jan", earnings: 5000 },
-    { month: "Feb", earnings: 2500 },
-    { month: "Mar", earnings: 8240 },
-    { month: "Apr", earnings: 9000 },
-    { month: "May", earnings: 8500 },
-    { month: "Jun", earnings: 8800 },
-    { month: "Jul", earnings: 9200 },
-    { month: "Aug", earnings: 5000 },
-    { month: "Sep", earnings: 2800 },
-    { month: "Oct", earnings: 8600 },
-    { month: "Nov", earnings: 9400 },
-    { month: "Dec", earnings: 8700 },
+  const dispatch = useDispatch();
+  const monthly = useSelector(selectDashboardMonthly);
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(`${currentYear}`);
+
+  useEffect(() => {
+    dispatch(fetchDashboardStats(Number(selectedYear)));
+  }, [dispatch, selectedYear]);
+
+  const monthLabels = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ];
+
+  const earningsData = useMemo(() => {
+    if (Array.isArray(monthly) && monthly.length > 0) {
+      if (typeof monthly[0] === "number") {
+        return monthLabels.map((label, index) => ({
+          month: label,
+          earnings: monthly[index] ?? 0,
+        }));
+      }
+      return monthly.map((item, index) => {
+        const monthValue = item.month ?? item.label ?? item.name ?? index + 1;
+        const monthLabel =
+          typeof monthValue === "number"
+            ? monthLabels[monthValue - 1] || `M${monthValue}`
+            : monthValue;
+        const earnings =
+          item.earnings ??
+          item.total ??
+          item.amount ??
+          item.value ??
+          0;
+        return { month: monthLabel, earnings };
+      });
+    }
+    return monthLabels.map((label) => ({ month: label, earnings: 0 }));
+  }, [monthly]);
 
   const chartConfig = {
     earnings: {
@@ -42,14 +83,22 @@ export function EarningsChart() {
     <Card className="mt-4">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold">Earnings</CardTitle>
-        <Select defaultValue="2025">
+        <Select
+          value={selectedYear}
+          onValueChange={(value) => setSelectedYear(value)}
+        >
           <SelectTrigger className="w-[100px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="2023">2023</SelectItem>
-            <SelectItem value="2024">2024</SelectItem>
-            <SelectItem value="2025">2025</SelectItem>
+            {[0, 1, 2].map((offset) => {
+              const year = `${currentYear - offset}`;
+              return (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </CardHeader>

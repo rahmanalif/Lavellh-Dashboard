@@ -12,44 +12,67 @@ import {
   Menu,
   HelpCircle,
   Package,
-  Calendar,
-  MessageSquare,
-  ClipboardList,
   BanknoteArrowUp,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "../../assets/logo ayudane.png";
+import { selectAdmin, selectAdminRole } from "@/store/adminAuthSlice";
 
 // Sidebar Items
 const sidebarItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "earnings", href: "/dashboard/earnings", icon: BanknoteArrowUp },
-  { title: "Users", href: "/dashboard/users", icon: Users2 },
-  { title: "Providers", href: "/dashboard/providers", icon: Package },
-  { title: "Business Owner", href: "/dashboard/business-owner", icon: Package },
-  { title: "Event manager", href: "/dashboard/event-manager", icon: Package },
-  { title: "Categories", href: "/dashboard/categories", icon: ClipboardList },
   {
-    title: "Withdraw Request",
-    href: "/dashboard/withdraw-request",
-    icon: Calendar,
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    permissionKey: "canViewReports",
   },
   {
-    title: "Subscription",
-    href: "/dashboard/subscription",
-    icon: Calendar,
+    title: "Providers",
+    href: "/dashboard/providers",
+    icon: Package,
+    permissionKey: "canManageProviders",
+  },
+  {
+    title: "Business Owners",
+    href: "/dashboard/business-owner",
+    icon: Package,
+    permissionKey: "canManageProviders",
+  },
+  {
+    title: "Event Managers",
+    href: "/dashboard/event-manager",
+    icon: Package,
+    permissionKey: "canManageProviders",
+  },
+  {
+    title: "Users",
+    href: "/dashboard/users",
+    icon: Users2,
+    permissionKey: "canManageUsers",
+  },
+  {
+    title: "Transactions",
+    href: "/dashboard/transactions",
+    icon: BanknoteArrowUp,
+    permissionKey: "canViewReports",
   },
   {
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
+    permissionKey: "canManageSettings",
     children: [
       { title: "Profile", href: "/dashboard/settings/profile", icon: UserCog },
-      { title: "Create Notification", href: "/dashboard/settings/create-notification", icon: UserCog },
+      {
+        title: "Create Notification",
+        href: "/dashboard/settings/create-notification",
+        icon: UserCog,
+      },
       {
         title: "Terms & Condition",
         href: "/dashboard/settings/terms",
@@ -64,7 +87,12 @@ const sidebarItems = [
       { title: "FAQ", href: "/dashboard/settings/faq", icon: HelpCircle },
     ],
   },
-  { title: "Support", href: "/dashboard/support", icon: MessageSquare },
+  {
+    title: "Admins",
+    href: "/dashboard/admins",
+    icon: UserCog,
+    superAdminOnly: true,
+  },
 ];
 
 // Logo Section
@@ -90,6 +118,24 @@ function LogoSection({ name = "Ayudame", title = "" }) {
 function SidebarNav({ onLinkClick }) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState([]);
+  const admin = useSelector(selectAdmin);
+  const role = useSelector(selectAdminRole);
+  const permissions = admin?.permissions || {};
+
+  const canAccess = (permissionKey) => {
+    if (!permissionKey) return true;
+    if (permissions[permissionKey] === undefined) return true;
+    return Boolean(permissions[permissionKey]);
+  };
+
+  const isSuperAdmin = role === "super-admin";
+
+  const visibleItems = sidebarItems.filter((item) => {
+    if (item.superAdminOnly) {
+      return isSuperAdmin;
+    }
+    return canAccess(item.permissionKey);
+  });
 
   const toggleExpanded = (href) =>
     setExpandedItems((prev) =>
@@ -101,7 +147,7 @@ function SidebarNav({ onLinkClick }) {
   return (
     <nav className="flex-1 p-2 sm:p-4 overflow-y-auto flex flex-col">
       <ul className="space-y-1 sm:space-y-2 flex-1">
-        {sidebarItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = location.pathname === item.href;
           const hasChildren = !!item.children?.length;
           const expanded = isExpanded(item.href);
