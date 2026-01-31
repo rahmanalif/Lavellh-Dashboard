@@ -25,32 +25,43 @@ import {
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchAdminSetting,
-  selectAdminSetting,
-  selectAdminSettingError,
-  selectAdminSettingStatus,
+  fetchRoleSetting,
+  selectRoleSetting,
+  selectRoleSettingError,
+  selectRoleSettingStatus,
   selectUpsertSettingError,
   selectUpsertSettingStatus,
   upsertAdminSetting,
 } from "@/store/settingsSlice";
+import SettingsRoleSelector from "@/components/dashboardcomponents/SettingsRoleSelector";
+import { useSettingsRole } from "@/lib/useSettingsRole";
+import {
+  getRoleLabel,
+  isRoleSettingEditable,
+  isRoleSettingSupported,
+} from "@/lib/settingsRoleConfig";
 
 const EditPrivacyPolicy = () => {
   const dispatch = useDispatch();
-  const setting = useSelector(selectAdminSetting("privacy_policy"));
-  const status = useSelector(selectAdminSettingStatus("privacy_policy"));
-  const error = useSelector(selectAdminSettingError("privacy_policy"));
+  const [role, setRole] = useSettingsRole();
+  const setting = useSelector(selectRoleSetting(role, "privacy_policy"));
+  const status = useSelector(selectRoleSettingStatus(role, "privacy_policy"));
+  const error = useSelector(selectRoleSettingError(role, "privacy_policy"));
   const saveStatus = useSelector(selectUpsertSettingStatus("privacy_policy"));
   const saveError = useSelector(selectUpsertSettingError("privacy_policy"));
 
   const [content, setContent] = useState("");
   const [fontSize, setFontSize] = useState("16");
   const [initialized, setInitialized] = useState(false);
+  const isSupported = isRoleSettingSupported(role, "privacy_policy");
+  const isEditable = isRoleSettingEditable(role, "privacy_policy");
 
   useEffect(() => {
+    if (!isSupported) return;
     if (status === "idle") {
-      dispatch(fetchAdminSetting("privacy_policy"));
+      dispatch(fetchRoleSetting({ role, key: "privacy_policy" }));
     }
-  }, [dispatch, status]);
+  }, [dispatch, isSupported, role, status]);
 
   useEffect(() => {
     if (!initialized && setting?.content !== undefined) {
@@ -59,7 +70,13 @@ const EditPrivacyPolicy = () => {
     }
   }, [initialized, setting]);
 
+  useEffect(() => {
+    setInitialized(false);
+    setContent("");
+  }, [role]);
+
   const handleSaveChanges = () => {
+    if (!isEditable) return;
     dispatch(
       upsertAdminSetting({
         key: "privacy_policy",
@@ -145,6 +162,19 @@ const EditPrivacyPolicy = () => {
         </RouterLink>
         <h1 className="text-lg font-medium">Edit Privacy Policy</h1>
       </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <SettingsRoleSelector value={role} onChange={setRole} />
+        {!isEditable && isSupported && (
+          <span className="text-sm text-amber-600">
+            {getRoleLabel(role)} privacy policy is read-only.
+          </span>
+        )}
+      </div>
+      {!isSupported && (
+        <div className="mt-4 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
+          Privacy policy is not available for {getRoleLabel(role)}.
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="mt-5">
@@ -246,6 +276,7 @@ const EditPrivacyPolicy = () => {
                 placeholder="Start typing..."
                 className="h-[500px] border-0 resize-none focus:ring-0 focus:outline-none text-sm leading-relaxed overflow-y-auto"
                 style={{ fontSize: `${fontSize}px` }}
+                disabled={!isSupported || !isEditable}
               />
             </div>
 
@@ -254,7 +285,7 @@ const EditPrivacyPolicy = () => {
               <Button
                 onClick={handleSaveChanges}
                 className="bg-[#1C5941] hover:bg-[#1C5941] text-white px-8 py-2 rounded-md"
-                disabled={saveStatus === "loading"}
+                disabled={!isEditable || saveStatus === "loading"}
               >
                 {saveStatus === "loading" ? "Saving..." : "Save Changes"}
               </Button>

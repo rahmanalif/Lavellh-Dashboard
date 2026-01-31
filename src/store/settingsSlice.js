@@ -1,11 +1,15 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as settingsApi from "../api/settingsApi";
 import * as adminSettingsApi from "../api/adminSettingsApi";
+import * as roleSettingsApi from "../api/roleSettingsApi";
 
 const initialState = {
   publicByKey: {},
   publicStatusByKey: {},
   publicErrorByKey: {},
+  roleByKey: {},
+  roleStatusByKey: {},
+  roleErrorByKey: {},
   adminList: [],
   adminListStatus: "idle",
   adminListError: null,
@@ -52,6 +56,22 @@ export const fetchAdminSetting = createAsyncThunk(
       return { key, setting };
     } catch (err) {
       return rejectWithValue({
+        key,
+        message: err.response?.data?.message || "Failed to load setting",
+      });
+    }
+  }
+);
+
+export const fetchRoleSetting = createAsyncThunk(
+  "settings/fetchRoleSetting",
+  async ({ role, key }, { rejectWithValue }) => {
+    try {
+      const setting = await roleSettingsApi.fetchRoleSetting({ role, key });
+      return { role, key, setting };
+    } catch (err) {
+      return rejectWithValue({
+        role,
         key,
         message: err.response?.data?.message || "Failed to load setting",
       });
@@ -130,6 +150,27 @@ const settingsSlice = createSlice({
           state.adminErrorByKey[key] = message || "Failed to load setting";
         }
       })
+      .addCase(fetchRoleSetting.pending, (state, action) => {
+        const { role, key } = action.meta.arg || {};
+        if (!role || !key) return;
+        const roleKey = `${role}:${key}`;
+        state.roleStatusByKey[roleKey] = "loading";
+        state.roleErrorByKey[roleKey] = null;
+      })
+      .addCase(fetchRoleSetting.fulfilled, (state, action) => {
+        const { role, key, setting } = action.payload || {};
+        if (!role || !key) return;
+        const roleKey = `${role}:${key}`;
+        state.roleStatusByKey[roleKey] = "succeeded";
+        state.roleByKey[roleKey] = setting;
+      })
+      .addCase(fetchRoleSetting.rejected, (state, action) => {
+        const { role, key, message } = action.payload || {};
+        if (!role || !key) return;
+        const roleKey = `${role}:${key}`;
+        state.roleStatusByKey[roleKey] = "failed";
+        state.roleErrorByKey[roleKey] = message || "Failed to load setting";
+      })
       .addCase(upsertAdminSetting.pending, (state, action) => {
         const key = action.meta.arg.key;
         state.upsertStatusByKey[key] = "loading";
@@ -140,6 +181,11 @@ const settingsSlice = createSlice({
         state.upsertStatusByKey[key] = "succeeded";
         state.adminByKey[key] = setting;
         state.publicByKey[key] = setting;
+        ["user", "provider"].forEach((role) => {
+          const roleKey = `${role}:${key}`;
+          state.roleByKey[roleKey] = setting;
+          state.roleStatusByKey[roleKey] = "succeeded";
+        });
       })
       .addCase(upsertAdminSetting.rejected, (state, action) => {
         const { key, message } = action.payload || {};
@@ -168,5 +214,12 @@ export const selectUpsertSettingStatus = (key) => (state) =>
   state.settings.upsertStatusByKey[key] || "idle";
 export const selectUpsertSettingError = (key) => (state) =>
   state.settings.upsertErrorByKey[key];
+
+export const selectRoleSetting = (role, key) => (state) =>
+  state.settings.roleByKey[`${role}:${key}`];
+export const selectRoleSettingStatus = (role, key) => (state) =>
+  state.settings.roleStatusByKey[`${role}:${key}`] || "idle";
+export const selectRoleSettingError = (role, key) => (state) =>
+  state.settings.roleErrorByKey[`${role}:${key}`];
 
 export default settingsSlice.reducer;

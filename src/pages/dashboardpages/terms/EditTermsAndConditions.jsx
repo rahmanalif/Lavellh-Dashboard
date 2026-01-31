@@ -25,32 +25,53 @@ import {
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchAdminSetting,
-  selectAdminSetting,
-  selectAdminSettingError,
-  selectAdminSettingStatus,
+  fetchRoleSetting,
+  selectRoleSetting,
+  selectRoleSettingError,
+  selectRoleSettingStatus,
   selectUpsertSettingError,
   selectUpsertSettingStatus,
   upsertAdminSetting,
 } from "@/store/settingsSlice";
+import SettingsRoleSelector from "@/components/dashboardcomponents/SettingsRoleSelector";
+import { useSettingsRole } from "@/lib/useSettingsRole";
+import {
+  getRoleLabel,
+  isRoleSettingEditable,
+  isRoleSettingSupported,
+} from "@/lib/settingsRoleConfig";
 
 const EditTermsAndConditions = () => {
   const dispatch = useDispatch();
-  const setting = useSelector(selectAdminSetting("terms_and_conditions"));
-  const status = useSelector(selectAdminSettingStatus("terms_and_conditions"));
-  const error = useSelector(selectAdminSettingError("terms_and_conditions"));
-  const saveStatus = useSelector(selectUpsertSettingStatus("terms_and_conditions"));
-  const saveError = useSelector(selectUpsertSettingError("terms_and_conditions"));
+  const [role, setRole] = useSettingsRole();
+  const setting = useSelector(
+    selectRoleSetting(role, "terms_and_conditions")
+  );
+  const status = useSelector(
+    selectRoleSettingStatus(role, "terms_and_conditions")
+  );
+  const error = useSelector(
+    selectRoleSettingError(role, "terms_and_conditions")
+  );
+  const saveStatus = useSelector(
+    selectUpsertSettingStatus("terms_and_conditions")
+  );
+  const saveError = useSelector(
+    selectUpsertSettingError("terms_and_conditions")
+  );
 
   const [content, setContent] = useState("");
   const [fontSize, setFontSize] = useState("16");
   const [initialized, setInitialized] = useState(false);
+  const isSupported = isRoleSettingSupported(role, "terms_and_conditions");
+  const isEditable = isRoleSettingEditable(role, "terms_and_conditions");
 
   useEffect(() => {
+    if (!isSupported) return;
     if (status === "idle") {
-      dispatch(fetchAdminSetting("terms_and_conditions"));
+      dispatch(fetchRoleSetting({ role, key: "terms_and_conditions" }));
     }
-  }, [dispatch, status]);
+  }, [dispatch, isSupported, role, status]);
 
   useEffect(() => {
     if (!initialized && setting?.content !== undefined) {
@@ -59,7 +80,13 @@ const EditTermsAndConditions = () => {
     }
   }, [initialized, setting]);
 
+  useEffect(() => {
+    setInitialized(false);
+    setContent("");
+  }, [role]);
+
   const handleSaveChanges = () => {
+    if (!isEditable) return;
     dispatch(
       upsertAdminSetting({
         key: "terms_and_conditions",
@@ -145,6 +172,19 @@ const EditTermsAndConditions = () => {
         </RouterLink>
         <h1 className="text-lg font-medium">Edit Terms and Conditions</h1>
       </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <SettingsRoleSelector value={role} onChange={setRole} />
+        {!isEditable && isSupported && (
+          <span className="text-sm text-amber-600">
+            {getRoleLabel(role)} terms are read-only.
+          </span>
+        )}
+      </div>
+      {!isSupported && (
+        <div className="mt-4 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
+          Terms and conditions are not available for {getRoleLabel(role)}.
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="mt-5">
@@ -246,6 +286,7 @@ const EditTermsAndConditions = () => {
                 placeholder="Start typing..."
                 className="h-[500px] border-0 resize-none focus:ring-0 focus:outline-none text-sm leading-relaxed overflow-y-auto"
                 style={{ fontSize: `${fontSize}px` }}
+                disabled={!isSupported || !isEditable}
               />
             </div>
 
@@ -254,7 +295,7 @@ const EditTermsAndConditions = () => {
               <Button
                 onClick={handleSaveChanges}
                 className="bg-[#1C5941] hover:bg-[#015a63] text-white px-8 py-2 rounded-md"
-                disabled={saveStatus === "loading"}
+                disabled={!isEditable || saveStatus === "loading"}
               >
                 {saveStatus === "loading" ? "Saving..." : "Save Changes"}
               </Button>
