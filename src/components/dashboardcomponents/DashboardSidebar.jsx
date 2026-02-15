@@ -13,6 +13,8 @@ import {
   HelpCircle,
   Package,
   BanknoteArrowUp,
+  Pin,
+  ShieldAlert,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -56,6 +58,26 @@ const sidebarItems = [
     permissionKey: "canManageUsers",
   },
   {
+    title: "Discovery Ranking",
+    href: "/dashboard/discovery-ranking",
+    icon: Pin,
+    permissionFn: (permissions) =>
+      Boolean(
+        (permissions?.canManageProviders ?? true) ||
+          (permissions?.canManageUsers ?? true)
+      ),
+  },
+  {
+    title: "Review Moderation",
+    href: "/dashboard/reviews/moderation",
+    icon: ShieldAlert,
+    permissionFn: (permissions) =>
+      Boolean(
+        (permissions?.canManageProviders ?? true) ||
+          (permissions?.canManageUsers ?? true)
+      ),
+  },
+  {
     title: "Transactions",
     href: "/dashboard/transactions",
     icon: BanknoteArrowUp,
@@ -71,6 +93,11 @@ const sidebarItems = [
       {
         title: "Create Notification",
         href: "/dashboard/settings/create-notification",
+        icon: UserCog,
+      },
+      {
+        title: "Broadcast Notification",
+        href: "/dashboard/notifications/broadcast",
         icon: UserCog,
       },
       {
@@ -134,6 +161,9 @@ function SidebarNav({ onLinkClick }) {
     if (item.superAdminOnly) {
       return isSuperAdmin;
     }
+    if (typeof item.permissionFn === "function") {
+      return item.permissionFn(permissions);
+    }
     return canAccess(item.permissionKey);
   });
 
@@ -163,7 +193,7 @@ function SidebarNav({ onLinkClick }) {
                       "w-full justify-start gap-2 h-8 sm:h-10 text-sm sm:text-base",
                       isActive
                         ? "bg-white text-[#1C5941]"
-                        : "text-white hover:bg-white/20"
+                        : "text-white hover:bg-white/20 hover:text-white"
                     )}
                   >
                     <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -192,7 +222,7 @@ function SidebarNav({ onLinkClick }) {
                                   "w-full justify-start gap-2 h-7 sm:h-9 text-xs sm:text-sm",
                                   isChildActive
                                     ? "bg-white text-[#1C5941]"
-                                    : "text-white hover:bg-white/20"
+                                    : "text-white hover:bg-white/20 hover:text-white"
                                 )}
                               >
                                 <child.icon className="h-3 w-3" />
@@ -213,7 +243,7 @@ function SidebarNav({ onLinkClick }) {
                       "w-full justify-start gap-2 h-8 sm:h-10 text-sm sm:text-base",
                       isActive
                         ? "bg-white text-[#1C5941]"
-                        : "text-white hover:bg-white/20"
+                        : "text-white hover:bg-white/20 hover:text-white"
                     )}
                   >
                     <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 
 // Layout
 import DashboardLayout from "../layouts/DashboardLayout";
@@ -36,6 +36,9 @@ import BusinessOwner from "@/pages/dashboardpages/businessOwner/BusinessOwner";
 import EventManager from "@/pages/event-manager/EventManager";
 import CreateNotification from "@/pages/createNotification/CreateNotification";
 import Admins from "@/pages/dashboardpages/admins/Admins";
+import DiscoveryRanking from "@/pages/dashboardpages/discoveryRanking/DiscoveryRanking";
+import BroadcastNotificationPage from "@/pages/dashboardpages/notificationBroadcast/BroadcastNotificationPage";
+import ReviewModerationPage from "@/pages/dashboardpages/reviewModeration/ReviewModerationPage";
 import ProtectedRoute from "./ProtectedRoute";
 // import FAQ from "../pages/dashboardpages/faq/FAQ";
 // import EditFAQ from "../pages/dashboardpages/faq/EditFAQ";
@@ -76,12 +79,15 @@ const routes = createBrowserRouter([
     children: [
       { index: true, element: <DashboardOverview /> },
       { path: "notifications", element: <AllNotifications /> },
+      { path: "notifications/broadcast", element: <BroadcastNotificationPage /> },
+      { path: "reviews/moderation", element: <ReviewModerationPage /> },
       { path: "users", element: <AllUsers /> },
       { path: "earnings", element: <Earnings /> },
       { path: "transactions", element: <Transactions /> },
       { path: "providers", element: <Providers /> },
       { path: "business-owner", element: <BusinessOwner /> },
       { path: "event-manager", element: <EventManager /> },
+      { path: "discovery-ranking", element: <DiscoveryRanking /> },
       { path: "categories", element: <Categories /> },
       { path: "withdraw-request", element: <WithdrawRequest /> },
       { path: "support", element: <InboxSection /> },
@@ -104,6 +110,18 @@ const routes = createBrowserRouter([
       { path: "settings/faq", element: <FAQSection /> },
       { path: "settings/editfaq", element: <EditFAQ /> },
     ],
+  },
+  {
+    path: "/admin/discovery-ranking",
+    element: <Navigate to="/dashboard/discovery-ranking" replace />,
+  },
+  {
+    path: "/admin/notifications/broadcast",
+    element: <Navigate to="/dashboard/notifications/broadcast" replace />,
+  },
+  {
+    path: "/admin/reviews/moderation",
+    element: <Navigate to="/dashboard/reviews/moderation" replace />,
   },
 ]);
 
